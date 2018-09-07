@@ -1,2 +1,4 @@
-# data-projects
-SQL, Python, and other useful scripts or data related projects.
+# Data Projects
+## SQL
+## Python
+## Other useful scripts or data related projects.
