@@ -1,3 +1,5 @@
+*.pyc
+*.pyo
 python/data.json
 python/push_data_to_google_sheets/client_secret.json
 python/push_data_to_google_sheets/jareddev-206516-5f3eeac597bd.json
