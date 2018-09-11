@@ -8,7 +8,7 @@ params = urllib.parse.quote_plus("DRIVER={SQL Server Native Client 11.0};SERVER=
 engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 sql_table = "develop_branch_sql"
 
-tag1 = "v2017.2.0"
+tag1 = "v2018.1.2"
 tag2 = "v2018.1.3"
 
 query1 = "select * from {table} where tag = '{tag}'".format(table=sql_table,tag=tag1)
@@ -21,37 +21,64 @@ df2 = pd.read_sql(query2, engine)
 df1 = df1.drop_duplicates(subset='file_content_hash',keep='first')
 df2 = df2.drop_duplicates(subset='file_content_hash',keep='first')
 
+#remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
+df1 = df1[df1['dir_path'].str.contains('Rave_Viper_Lucy_Merged_DB_Scripts')]
+#remove certain directory paths the ~ is the opposite result set
+df1 = df1[~df1['dir_path'].str.contains('tSQLt_UnitTests')]
+df1 = df1[~df1['dir_path'].str.contains('Samples')]
+df1 = df1[~df1['dir_path'].str.contains('SolarWinds')]
+df1 = df1[~df1['dir_path'].str.contains('Registry1')]
+df1 = df1[~df1['dir_path'].str.contains('TSDV DB Install Scripts')]
+
+#remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
+df2 = df2[df2['dir_path'].str.contains('Rave_Viper_Lucy_Merged_DB_Scripts')]
+#remove certain directory paths the ~ is the opposite result set
+df2 = df2[~df2['dir_path'].str.contains('tSQLt_UnitTests')]
+df2 = df2[~df2['dir_path'].str.contains('Samples')]
+df2 = df2[~df2['dir_path'].str.contains('SolarWinds')]
+df2 = df2[~df2['dir_path'].str.contains('Registry1')]
+df2 = df2[~df2['dir_path'].str.contains('TSDV DB Install Scripts')]
+
+
 #get 2 columns from each df
 df1part = df1.loc[:,['file_name','file_content_hash']]
 df2part = df2.loc[:,['file_name','file_content_hash']]
 
 
 #get list of unchanged files based on exact hash match
-df3_files_unchanged = pd.merge(df2part, df1part,  how='inner', left_on=['file_content_hash'], right_on = ['file_content_hash'])
-df3_files_unchanged.columns = ['file_name','file_content_hash','file_name_y']
-df3_files_unchanged = df3_files_unchanged.drop(columns=['file_name_y'])
+df2_files_unchanged = pd.merge(df2part, df1part,  how='inner', left_on=['file_content_hash'], right_on = ['file_content_hash'])
+df2_files_unchanged.columns = ['file_name','file_content_hash','file_name_y']
+df2_files_unchanged = df2_files_unchanged.drop(columns=['file_name_y'])
 
 #get list of new files only
 #left join on file_name
-df3_files_new = pd.merge(df2part,df1part,how='left',on='file_name')
+df2_files_new = pd.merge(df2part,df1part,how='left',on='file_name')
 #only return rows where they did not exist in tag1
-df3_files_new = df3_files_new.loc[df3_files_new.notna()['file_content_hash_y']==False]
+df2_files_new = df2_files_new.loc[df2_files_new.notna()['file_content_hash_y']==False]
 #rename the columns after join and drop file_content_hash_y column
-df3_files_new.columns = ['file_name','file_content_hash','file_content_hash_y']
-df3_files_new = df3_files_new.drop(columns=['file_content_hash_y'])
+df2_files_new = df2_files_new.drop(columns=['file_content_hash_y'])
+df2_files_new.columns = ['file_name','file_content_hash']
 #finally make sure does not exist in the files unchanged list
-df3_files_new = pd.merge(df3_files_new,df3_files_unchanged,how='left',left_on=['file_content_hash'],right_on=['file_content_hash'])
-df3_files_new = df3_files_new.loc[df3_files_new.notna()['file_name_y']==False]
-df3_files_new = df3_files_new.drop(columns=['file_name_y'])
+df2_files_new = pd.merge(df2_files_new,df2_files_unchanged,how='left',left_on=['file_content_hash'],right_on=['file_content_hash'])
+df2_files_new = df2_files_new.loc[df2_files_new.notna()['file_name_y']==False]
+df2_files_new = df2_files_new.drop(columns=['file_name_y'])
+df2_files_new.columns = ['file_name','file_content_hash']
+
 
 #get list of files changed only by removing unchanged and new files
 #exclude unchanged files first
-df3_files_changed = pd.merge(df2part,df3_files_unchanged, how='left',left_on=['file_content_hash'], right_on = ['file_content_hash'])
-df3_files_changed = df3_files_changed.loc[df3_files_changed.notna()['file_name_y']==False]
-df3_files_changed.columns = ['file_name','file_content_hash','file_name_y']
-df3_files_changed = df3_files_changed.drop(columns=['file_name_y'])
+df2_files_changed = pd.merge(df2part,df2_files_unchanged, how='left',left_on=['file_content_hash'], right_on = ['file_content_hash'])
+df2_files_changed = df2_files_changed.loc[df2_files_changed.notna()['file_name_y']==False]
+df2_files_changed = df2_files_changed.drop(columns=['file_name_y'])
+df2_files_changed.columns = ['file_name','file_content_hash']
+
 #exclude new files
-df3_files_changed = pd.merge(df3_files_changed,df3_files_new, how='left',left_on=['file_content_hash'], right_on = ['file_content_hash'])
-df3_files_changed = df3_files_changed.loc[df3_files_changed.notna()['file_name_x']==False]
-df3_files_changed.columns = ['file_name','file_content_hash','file_name_x']
-df3_files_changed = df3_files_changed.drop(columns=['file_name_x'])
+df2_files_changed = pd.merge(df2_files_changed,df2_files_new, how='left',left_on=['file_content_hash'], right_on = ['file_content_hash'])
+df2_files_changed = df2_files_changed.loc[df2_files_changed.notna()['file_name_y']==False]
+df2_files_changed = df2_files_changed.drop(columns=['file_name_y'])
+df2_files_changed.columns = ['file_name','file_content_hash']
+
+#join back to the original df2
+df2_files_unchanged_all = pd.merge(df2_files_unchanged, df2, how='inner', left_on=['file_content_hash','file_name'], right_on= ['file_content_hash','file_name'])
+df2_files_changed_all = pd.merge(df2_files_changed,df2,how='inner')
+df2_files_new_all = pd.merge(df2_files_new,df2,how='inner')
