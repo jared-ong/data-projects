@@ -1,14 +1,16 @@
 import urllib
 from sqlalchemy import create_engine
+from bs4 import UnicodeDammit
 import pandas as pd
 import numpy as np
+import re
 
 #pyodbc connection params and engine creation for later df to sql
 params = urllib.parse.quote_plus("DRIVER={SQL Server Native Client 11.0};SERVER=localhost,2017;DATABASE=schema_changes;UID=python_user;PWD=python_user")
 engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 sql_table = "develop_branch_sql"
 
-tag1 = "v2018.1.2"
+tag1 = "v2017.2.0"
 tag2 = "v2018.1.3"
 
 query1 = "select * from {table} where tag = '{tag}'".format(table=sql_table,tag=tag1)
@@ -82,3 +84,118 @@ df2_files_changed.columns = ['file_name','file_content_hash']
 df2_files_unchanged_all = pd.merge(df2_files_unchanged, df2, how='inner', left_on=['file_content_hash','file_name'], right_on= ['file_content_hash','file_name'])
 df2_files_changed_all = pd.merge(df2_files_changed,df2,how='inner')
 df2_files_new_all = pd.merge(df2_files_new,df2,how='inner')
+
+def remove_empty_lists(l):
+    #new list
+    newlist = []
+    #loop over elements
+    for i in l:
+        #pdb.set_trace()
+        #is element a non-empty list? then call self on it
+        if isinstance(i, list) and len(i) != 0:
+            newlist.append(remover(i))
+        #if not a list
+        if not isinstance(i, list):
+            newlist.append(i)
+    return newlist
+
+def process_DDL(file_content):
+    #Procedures
+    find=[]
+    regex = r"CREATE\s+PROCEDURE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)
+    find = find + find2
+    regex = r"DROP\s+PROCEDURE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"CREATE\s+PROC\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)
+    find = find + find2
+    regex = r"DROP\s+PROC\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2    
+    regex = r"ALTER\s+PROCEDURE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    #Views
+    regex = r"CREATE\s+VIEW\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)
+    find = find + find2
+    regex = r"DROP\s+VIEW\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+VIEW\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    #Tables
+    regex = r"CREATE\s+TABLE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"DROP\s+TABLE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+TABLE\s+[a-zA-Z0-9_\[\].]+\s+ALTER\s+COLUMN.*"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+TABLE\s+[a-zA-Z0-9_\[\].]+\s+ADD.*"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    #Functions
+    regex = r"CREATE\s+FUNCTION\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"DROP\s+FUNCTION\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+FUNCTION\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    #Types
+    regex = r"CREATE\s+TYPE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"DROP\s+TYPE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+TYPE\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2    
+    #INDEXES
+    regex = r"CREATE\s+INDEX\s+[a-zA-Z0-9_\[\].]+\s+ON\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"CREATE\s+CLUSTERED\s+INDEX\s+[a-zA-Z0-9_\[\].]+\s+ON\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"CREATE\s+NONCLUSTERED\s+INDEX\s+[a-zA-Z0-9_\[\].]+\s+ON\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"CREATE\s+UNIQUE\s+INDEX\s+[a-zA-Z0-9_\[\].]+\s+ON\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2    
+    regex = r"DROP\s+INDEX\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find = find + find2
+    regex = r"ALTER\s+INDEX\s+[a-zA-Z0-9_\[\].]+"
+    find2 = re.findall(regex, file_content, re.I)    
+    find.append(find2) 
+    find = remove_empty_lists(find) 
+    return find
+
+df2_files_new_all['ddl'] = ""
+for index, row in df2_files_new_all.iterrows():
+    the_file_content = df2_files_new_all.iloc[index]['file_content']
+    theddl = process_DDL(the_file_content)
+    print(df2_files_new_all.iloc[index]['full_path'])
+    print(theddl)
+    df2_files_new_all.at[index,'ddl'] = theddl
+    
+df2_files_changed_all['ddl'] = ""
+for index, row in df2_files_changed_all.iterrows():
+    the_file_content = df2_files_changed_all.iloc[index]['file_content']
+    theddl = process_DDL(the_file_content)
+    print(df2_files_changed_all.iloc[index]['full_path'])
+    print(theddl)
+    df2_files_changed_all.at[index,'ddl'] = theddl
+
+

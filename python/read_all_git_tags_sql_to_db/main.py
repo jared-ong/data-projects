@@ -1,11 +1,13 @@
 import urllib
 from sqlalchemy import create_engine
+import pyodbc
 import git
 #custom module read_sql_files need to add to PYTHONPATH in Spyder IDE > Tools > "PYTHONPATH Manager" to GitHub\data-projects\python\lib\site-packages
 import read_sql_files
 import pandas as pd
 
 #pyodbc connection params and engine creation for later df to sql
+db_connect_string = "DRIVER={SQL Server Native Client 11.0};SERVER=localhost,2017;DATABASE=schema_changes;UID=python_user;PWD=python_user"
 params = urllib.parse.quote_plus("DRIVER={SQL Server Native Client 11.0};SERVER=localhost,2017;DATABASE=schema_changes;UID=python_user;PWD=python_user")
 engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 sql_table = "develop_branch_sql"
@@ -33,6 +35,7 @@ def look_sql_all_tags():
             #write the dataframe to new table the first time
             df.to_sql(sql_table,engine,if_exists='replace')
             first_run = False
+            break
         else:
             #after the first time append to the table
             df.to_sql(sql_table,engine,if_exists='append')
@@ -44,12 +47,17 @@ def look_sql_single_tag(tagname):
     df = read_sql_files.read_sql_files_to_dataframe(var_directory_to_sql)
     df["tag"] = str(tagname)
     df.to_sql(sql_table,engine,if_exists='append')
-    
+
+
+#create sql connection
+connection = pyodbc.connect(db_connect_string)
+cursor = connection.cursor()
+#truncate the table
+sqltruncate = ("""truncate table %s """ % sql_table)
+cursor.execute(sqltruncate)
+connection.commit()
+                
 #reload data into table
 #look_sql_all_tags()
-#look_sql_singel_tag('v2018.1.3')
-
-the_query = """select dbs.* from develop_branch_sql dbs
-                inner join rave_version_prod_urls_git_tags rvpugt on dbs.tag = rvpugt.tag
-                order by rvpugt.raveversionsortable1, rvpugt.raveversionsortable2""" % sql_table
-all_data = pd.read_sql(the_query,engine,chunksize=5000)
+look_sql_single_tag('v2017.2.0')
+look_sql_single_tag('v2018.1.3')
