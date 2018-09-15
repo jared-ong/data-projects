@@ -20,7 +20,7 @@ select * into schema_changes.dbo.rave_version_git_tags from rave_version_git_tag
 
 use schema_changes
 go
-select distinct tag into all_tags from develop_branch_sql
+select distinct tag into all_tags from git_sql
 
 truncate table rave_version_prod_urls_git_tags
 
