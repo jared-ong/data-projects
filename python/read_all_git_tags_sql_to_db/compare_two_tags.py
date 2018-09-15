@@ -2,8 +2,8 @@
 """
 This module is intended to compare sql files in two tags in a git repository.
 
-TAG1 should be an earlier tag.
-TAG2 should be a later tag.
+TAG1 should be an earlier git_tag.
+TAG2 should be a later git_tag.
 
 The results will return two dataframes with a special DDL column that shows
 all DDL changes in the file.
@@ -122,18 +122,18 @@ def compare_two_tags(git_tag1, git_tag2):
               file_content,\
               file_content_hash,\
               file_size,\
-              tag\
-              from {table} where tag = '{tag}'".format(table=SQL_TABLE,
-                                                       tag=git_tag1)
+              git_tag\
+              from {table} where git_tag = '{git_tag}'".format(table=SQL_TABLE,
+															   git_tag=git_tag1)
     QUERY2 = "select full_path,\
               dir_path,\
               file_name,\
               file_content,\
               file_content_hash,\
               file_size,\
-              tag\
-              from {table} where tag = '{tag}'".format(table=SQL_TABLE,
-                                                       tag=git_tag2)
+              git_tag\
+              from {table} where git_tag = '{git_tag}'".format(table=SQL_TABLE,
+															   git_tag=git_tag2)
     
     DF1 = pd.read_sql(QUERY1, ENGINE)
     DF2 = pd.read_sql(QUERY2, ENGINE)

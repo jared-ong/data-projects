@@ -36,7 +36,7 @@ SQL_TABLE = "git_sql"
 
 # Directory where the .sql files are
 SQL_DIRECTORY = 'C:\\Users\\jong\\Documents\\GitHub\\Rave\\Medidata 5 RAVE Database Project'  # noqa
-# Grab the current git tag from repo
+# Grab the current git git_tag from repo
 GIT_REPO_MAIN_DIRECTORY = 'C:\\Users\\jong\\Documents\\GitHub\\Rave'
 REPO = git.Repo(GIT_REPO_MAIN_DIRECTORY)
 G = git.Git(GIT_REPO_MAIN_DIRECTORY)
@@ -45,11 +45,11 @@ G = git.Git(GIT_REPO_MAIN_DIRECTORY)
 def look_sql_all_tags():
     """Loop through all tags in the repo, check them out, and pull the SQL."""
     first_run = 1
-    for tag in REPO.tags:
+    for git_tag in REPO.tags:
         G.clean('-xdf')
-        G.checkout(tag)
+        G.checkout(git_tag)
         df1 = read_sql_files.read_sql_files_to_dataframe(SQL_DIRECTORY)
-        df1["tag"] = str(tag)
+        df1["git_tag"] = str(git_tag)
         if first_run == 1:
             # Write the dataframe to new table the first time.
             df1.to_sql(SQL_TABLE, ENGINE, if_exists='replace')
@@ -61,16 +61,16 @@ def look_sql_all_tags():
 
 
 def look_sql_single_tag(tagname):
-    """Pull single tag and append to existing table."""
+    """Pull single git_tag and append to existing table."""
     G.clean('-xdf')
     G.checkout(tagname)
     df1 = read_sql_files.read_sql_files_to_dataframe(SQL_DIRECTORY)
-    df1["tag"] = str(tagname)
+    df1["git_tag"] = str(tagname)
     df1.to_sql(SQL_TABLE, ENGINE, if_exists='append')
 
 
 def truncate_sql_table():
-    """Pull single tag and append to existing table."""
+    """Pull single git_tag and append to existing table."""
     conn = pyodbc.connect(DB_CONNECT_STRING)
     cursor = conn.cursor()
     sqltruncate = ("""truncate table %s """ % SQL_TABLE)
