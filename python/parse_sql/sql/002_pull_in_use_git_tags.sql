@@ -16,11 +16,11 @@ from falcon_sites
 where rave_version NOT IN ('5.6.5.5001','5.6.5.5002') and release not in ('Medidata Rave 2016.5.3')
 order by raveversionsortable1, raveversionsortable2
 
-select * into schema_changes.dbo.rave_version_git_tags from rave_version_git_tags
+select * into parse_sql.dbo.rave_version_git_tags from rave_version_git_tags
 
-use schema_changes
+use parse_sql
 go
-select distinct tag into all_tags from git_sql
+select distinct tag into all_tags from parse_sql
 
 truncate table rave_version_prod_urls_git_tags
 

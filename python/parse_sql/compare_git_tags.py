@@ -1,4 +1,3 @@
-# compare_tow_tags.py
 """
 This module is intended to compare sql files in two tags in a git repository.
 
@@ -13,6 +12,7 @@ DF_FILES_CHANGED_ALL
 
 Examples:
     compare_two_tags("v2017.2.0", "v2018.1.3")
+
 """
 import urllib
 import re
@@ -22,11 +22,11 @@ from sqlalchemy import create_engine
 # Pyodbc connection PARAMS and ENGINE creation for later dataframes to sql.
 PARAMS = urllib.parse.quote_plus("DRIVER={SQL Server Native Client 11.0};\
                                  SERVER=localhost,2017;\
-                                 DATABASE=schema_changes;\
+                                 DATABASE=parse_sql;\
                                  UID=python_user;\
                                  PWD=python_user")
 ENGINE = create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
-SQL_TABLE = "git_sql"
+SQL_TABLE = "parse_sql"
 
 
 def remove_empty_lists(the_list):
@@ -114,122 +114,99 @@ def process_ddl(file_content):
     find = remove_empty_lists(find)
     return find
 
+
+def git_sql_to_dataframe(git_tag):
+    """Pull git tag from git_sql table into a dataframe."""
+    queryx = "select full_path,\
+              dir_path,\
+              file_name,\
+              file_content,\
+              file_content_hash,\
+              file_size,\
+              git_tag\
+              from {table} where git_tag = '{git_tag}'"
+    queryx = queryx.format(table=SQL_TABLE, git_tag=git_tag)
+    dfx = pd.read_sql(queryx, ENGINE)
+    # Delete the second duplicate file_content_hash values from each dataframe.
+    dfx = dfx.drop_duplicates(subset='file_content_hash', keep='first')
+    # Remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
+    string_contains = 'Rave_Viper_Lucy_Merged_DB_Scripts'
+    dfx = dfx[dfx['dir_path'].str.contains(string_contains)]
+    # Remove certain directory paths the ~ is the opposite result set
+    dfx = dfx[~dfx['dir_path'].str.contains('tSQLt_UnitTests')]
+    dfx = dfx[~dfx['dir_path'].str.contains('Samples')]
+    dfx = dfx[~dfx['dir_path'].str.contains('SolarWinds')]
+    dfx = dfx[~dfx['dir_path'].str.contains('Registry1')]
+    dfx = dfx[~dfx['dir_path'].str.contains('TSDV DB Install Scripts')]
+    return dfx
+
+
 def compare_two_tags(git_tag1, git_tag2):
     """Compare all sql in two git tags to find new or changed files."""
-    QUERY1 = "select full_path,\
-              dir_path,\
-              file_name,\
-              file_content,\
-              file_content_hash,\
-              file_size,\
-              git_tag\
-              from {table} where git_tag = '{git_tag}'".format(table=SQL_TABLE,
-															   git_tag=git_tag1)
-    QUERY2 = "select full_path,\
-              dir_path,\
-              file_name,\
-              file_content,\
-              file_content_hash,\
-              file_size,\
-              git_tag\
-              from {table} where git_tag = '{git_tag}'".format(table=SQL_TABLE,
-															   git_tag=git_tag2)
-    
-    DF1 = pd.read_sql(QUERY1, ENGINE)
-    DF2 = pd.read_sql(QUERY2, ENGINE)
-    
-    # Delete the second duplicate file_content_hash values from each dataframe.
-    DF1 = DF1.drop_duplicates(subset='file_content_hash', keep='first')
-    DF2 = DF2.drop_duplicates(subset='file_content_hash', keep='first')
-    
-    # Remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
-    DF1 = DF1[DF1['dir_path'].str.contains('Rave_Viper_Lucy_Merged_DB_Scripts')]
-    # Remove certain directory paths the ~ is the opposite result set
-    DF1 = DF1[~DF1['dir_path'].str.contains('tSQLt_UnitTests')]
-    DF1 = DF1[~DF1['dir_path'].str.contains('Samples')]
-    DF1 = DF1[~DF1['dir_path'].str.contains('SolarWinds')]
-    DF1 = DF1[~DF1['dir_path'].str.contains('Registry1')]
-    DF1 = DF1[~DF1['dir_path'].str.contains('TSDV DB Install Scripts')]
-    
-    # Remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
-    DF2 = DF2[DF2['dir_path'].str.contains('Rave_Viper_Lucy_Merged_DB_Scripts')]
-    # Remove certain directory paths the ~ is the opposite result set
-    DF2 = DF2[~DF2['dir_path'].str.contains('tSQLt_UnitTests')]
-    DF2 = DF2[~DF2['dir_path'].str.contains('Samples')]
-    DF2 = DF2[~DF2['dir_path'].str.contains('SolarWinds')]
-    DF2 = DF2[~DF2['dir_path'].str.contains('Registry1')]
-    DF2 = DF2[~DF2['dir_path'].str.contains('TSDV DB Install Scripts')]
-    
-    
+    df1 = git_sql_to_dataframe(git_tag1)
+    df2 = git_sql_to_dataframe(git_tag2)
     # Get 2 columns from each df.
-    DF1PART = DF1.loc[:, ['file_name', 'file_content_hash']]
-    DF2PART = DF2.loc[:, ['file_name', 'file_content_hash']]
-    
-    
+    df1part = df1.loc[:, ['file_name', 'file_content_hash']]
+    df2part = df2.loc[:, ['file_name', 'file_content_hash']]
     # Get list of unchanged files based on exact hash match.
-    DF2_UNCHANGED = pd.merge(DF2PART,
-                             DF1PART,
+    df2_unchanged = pd.merge(df2part,
+                             df1part,
                              how='inner',
                              left_on=['file_content_hash'],
                              right_on=['file_content_hash'])
-    DF2_UNCHANGED.columns = ['file_name', 'file_content_hash', 'file_name_y']
-    DF2_UNCHANGED = DF2_UNCHANGED.drop(columns=['file_name_y'])
-    
+    df2_unchanged.columns = ['file_name', 'file_content_hash', 'file_name_y']
+    df2_unchanged = df2_unchanged.drop(columns=['file_name_y'])
     # Get list of new files only.
     # Left join on file_name.
-    DF2_NEW = pd.merge(DF2PART, DF1PART, how='left', on='file_name')
+    df2_new = pd.merge(df2part, df1part, how='left', on='file_name')
     # Only return rows where they did not exist in git_tag1.
-    DF2_NEW = DF2_NEW.loc[DF2_NEW.notna()['file_content_hash_y'] == 0]
+    df2_new = df2_new.loc[df2_new.notna()['file_content_hash_y'] == 0]
     # Rename the columns after join and drop file_content_hash_y column.
-    DF2_NEW = DF2_NEW.drop(columns=['file_content_hash_y'])
-    DF2_NEW.columns = ['file_name', 'file_content_hash']
+    df2_new = df2_new.drop(columns=['file_content_hash_y'])
+    df2_new.columns = ['file_name', 'file_content_hash']
     # Finally make sure does not exist in the files unchanged list
-    DF2_NEW = pd.merge(DF2_NEW,
-                       DF2_UNCHANGED,
+    df2_new = pd.merge(df2_new,
+                       df2_unchanged,
                        how='left',
                        left_on=['file_content_hash'],
                        right_on=['file_content_hash'])
-    DF2_NEW = DF2_NEW.loc[DF2_NEW.notna()['file_name_y'] == 0]
-    DF2_NEW = DF2_NEW.drop(columns=['file_name_y'])
-    DF2_NEW.columns = ['file_name', 'file_content_hash']
-    
+    df2_new = df2_new.loc[df2_new.notna()['file_name_y'] == 0]
+    df2_new = df2_new.drop(columns=['file_name_y'])
+    df2_new.columns = ['file_name', 'file_content_hash']
     # Get list of files changed only by removing unchanged and new files.
     # Exclude unchanged files first.
-    DF2_CHANGED = pd.merge(DF2PART,
-                           DF2_UNCHANGED,
+    df2_changed = pd.merge(df2part,
+                           df2_unchanged,
                            how='left',
                            left_on=['file_content_hash'],
                            right_on=['file_content_hash'])
-    DF2_CHANGED = DF2_CHANGED.loc[DF2_CHANGED.notna()['file_name_y'] == 0]
-    DF2_CHANGED = DF2_CHANGED.drop(columns=['file_name_y'])
-    DF2_CHANGED.columns = ['file_name', 'file_content_hash']
-    
+    df2_changed = df2_changed.loc[df2_changed.notna()['file_name_y'] == 0]
+    df2_changed = df2_changed.drop(columns=['file_name_y'])
+    df2_changed.columns = ['file_name', 'file_content_hash']
     # Exclude new files.
-    DF2_CHANGED = pd.merge(DF2_CHANGED,
-                           DF2_NEW,
+    df2_changed = pd.merge(df2_changed,
+                           df2_new,
                            how='left',
                            left_on=['file_content_hash'],
                            right_on=['file_content_hash'])
-    DF2_CHANGED = DF2_CHANGED.loc[DF2_CHANGED.notna()['file_name_y'] == 0]
-    DF2_CHANGED = DF2_CHANGED.drop(columns=['file_name_y'])
-    DF2_CHANGED.columns = ['file_name', 'file_content_hash']
-    
-    # Join back to the original DF2.
-    DF2_CHANGED_ALL = pd.merge(DF2_CHANGED, DF2, how='inner')
-    DF2_NEW_ALL = pd.merge(DF2_NEW, DF2, how='inner')
-    
-    DF2_NEW_ALL['ddl'] = ""
-    for index, row in DF2_NEW_ALL.iterrows():
-        the_file_content = DF2_NEW_ALL.iloc[index]['file_content']
-        theddl = process_ddl(the_file_content)
-        print(DF2_NEW_ALL.iloc[index]['full_path'])
-        print(theddl)
-        DF2_NEW_ALL.at[index, 'ddl'] = theddl
-    
-    DF2_CHANGED_ALL['ddl'] = ""
-    for index, row in DF2_CHANGED_ALL.iterrows():
-        the_file_content = DF2_CHANGED_ALL.iloc[index]['file_content']
-        theddl = process_ddl(the_file_content)
-        print(DF2_CHANGED_ALL.iloc[index]['full_path'])
-        print(theddl)
-        DF2_CHANGED_ALL.at[index, 'ddl'] = theddl
+    df2_changed = df2_changed.loc[df2_changed.notna()['file_name_y'] == 0]
+    df2_changed = df2_changed.drop(columns=['file_name_y'])
+    df2_changed.columns = ['file_name', 'file_content_hash']
+    # Join back to the original df2.
+    df2_changed_all = pd.merge(df2_changed, df2, how='inner')
+    df2_changed_all['change_type'] = "modified"
+    df2_new_all = pd.merge(df2_new, df2, how='inner')
+    df2_new_all['change_type'] = "new"
+    # Combine dataframe of new and modified files
+    df_diff = df2_new_all.append(df2_changed_all, ignore_index=True)
+    df_diff['ddl'] = ""
+    for index, row in df_diff.iterrows():
+        # Read file contents, set ddl column to list of all ddl statements.
+        df_diff.at[index, 'ddl'] = process_ddl(row['file_content'])
+        print(row['full_path'])
+        print(df_diff.loc[index, 'ddl'])
+    return df_diff
+
+
+if __name__ == "__main__":
+    DF_DIFF = compare_two_tags("v2017.2.0", "v2018.1.3")
