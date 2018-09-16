@@ -19,14 +19,22 @@ import re
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Pyodbc connection PARAMS and ENGINE creation for later dataframes to sql.
-PARAMS = urllib.parse.quote_plus("DRIVER={SQL Server Native Client 11.0};\
-                                 SERVER=localhost,2017;\
-                                 DATABASE=parse_sql;\
-                                 UID=python_user;\
-                                 PWD=python_user")
+# Load the config yaml file
+with open('config.yaml') as fp:
+    my_configuration = yaml.load(fp)
+
+# pyodbc connection PARAMS and ENGINE creation for later df to sql
+DB_CONNECT_STRING = "DRIVER={%s};\
+                     SERVER=%s;\
+                     DATABASE=%s;\
+                     UID=%s;\
+                     PWD=%s" % (my_configuration['SQL_DRIVER'],
+                     my_configuration['SQL_SERVER'],
+                     my_configuration['SQL_DATABASE'],
+                     my_configuration['SQL_LOGIN'],
+                     my_configuration['SQL_PASSWORD'])
+PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
 ENGINE = create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
-SQL_TABLE = "parse_sql"
 
 
 def remove_empty_lists(the_list):
@@ -124,8 +132,8 @@ def git_sql_to_dataframe(git_tag):
               file_content_hash,\
               file_size,\
               git_tag\
-              from {table} where git_tag = '{git_tag}'"
-    queryx = queryx.format(table=SQL_TABLE, git_tag=git_tag)
+              from parse_sql where git_tag = '{git_tag}'"
+    queryx = queryx.format(git_tag=git_tag)
     dfx = pd.read_sql(queryx, ENGINE)
     # Delete the second duplicate file_content_hash values from each dataframe.
     dfx = dfx.drop_duplicates(subset='file_content_hash', keep='first')
