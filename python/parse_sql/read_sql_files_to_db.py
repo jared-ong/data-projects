@@ -23,13 +23,15 @@ import re
 import pandas as pd
 import git
 from sqlalchemy import create_engine
+import yaml
 import pyodbc
+import dataframe_conversions as dc
 
 # Load the config yaml file
 with open('config.yaml') as fp:
     my_configuration = yaml.load(fp)
 
-# pyodbc connection PARAMS and ENGINE creation for later df to sql
+# pyodbc connection string
 DB_CONNECT_STRING = "DRIVER={%s};\
                      SERVER=%s;\
                      DATABASE=%s;\
@@ -39,13 +41,12 @@ DB_CONNECT_STRING = "DRIVER={%s};\
                      my_configuration['SQL_DATABASE'],
                      my_configuration['SQL_LOGIN'],
                      my_configuration['SQL_PASSWORD'])
-PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
-ENGINE = create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
 
 # Directory where the .sql files are
 SQL_DIRECTORY = my_configuration['SQL_DIR']
 # Grab the current git git_tag from repo
 GIT_REPO_MAIN_DIRECTORY = my_configuration['GIT_REPO_MAIN_DIR']
+GIT_REPO = my_configuration['GIT_REPO_NAME']
 REPO = git.Repo(GIT_REPO_MAIN_DIRECTORY)
 G = git.Git(GIT_REPO_MAIN_DIRECTORY)
 
@@ -114,15 +115,9 @@ def look_sql_all_tags():
         G.clean('-xdf')
         G.checkout(git_tag)
         df1 = read_sql_files_to_dataframe(SQL_DIRECTORY)
+        df1["git_repo"] = str(GIT_REPO)
         df1["git_tag"] = str(git_tag)
-        if first_run == 1:
-            # Write the dataframe to new table the first time.
-            df1.to_sql("parse_sql", ENGINE, if_exists='replace')
-            first_run = 0
-            break
-        else:
-            # After the first time append to the table.
-            df1.to_sql("parse_sql", ENGINE, if_exists='append')
+        dc.dataframe_to_mssql(DB_CONNECT_STRING, '[dbo]', '[parse_sql]', '[full_path], [dir_path], [file_name], [file_content], [file_content_hash], [file_size], [git_repo], [git_tag]', df1)
 
 
 def look_sql_single_tag(tagname):
@@ -130,20 +125,12 @@ def look_sql_single_tag(tagname):
     G.clean('-xdf')
     G.checkout(tagname)
     df1 = read_sql_files_to_dataframe(SQL_DIRECTORY)
+    df1["git_repo"] = str(GIT_REPO)
     df1["git_tag"] = str(tagname)
-    df1.to_sql("parse_sql", ENGINE, if_exists='append')
-
-
-def truncate_sql_table():
-    """Pull single git_tag and append to existing table."""
-    conn = pyodbc.connect(DB_CONNECT_STRING)
-    cursor = conn.cursor()
-    sqltruncate = ("truncate table parse_sql")
-    cursor.execute(sqltruncate)
-    conn.commit()
+    dc.dataframe_to_mssql(DB_CONNECT_STRING, '[dbo]', '[parse_sql]', '[full_path], [dir_path], [file_name], [file_content], [file_content_hash], [file_size], [git_repo], [git_tag]', df1)
 
 
 if __name__ == "__main__":
-    truncate_sql_table()
+    dc.truncate_sql_table("parse_sql")
     look_sql_single_tag('v2017.2.0')
     look_sql_single_tag('v2018.1.3')

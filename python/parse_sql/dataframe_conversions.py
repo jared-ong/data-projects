@@ -39,6 +39,16 @@ def dataframe_to_mssql(pyodbc_connect_string, schemaname, tablename, columnlist,
     cursor.executemany(sqlcommand, datalist)
 
 
+def truncate_sql_table(table_name):
+    """Pull single git_tag and append to existing table."""
+    conn = pyodbc.connect(DB_CONNECT_STRING)
+    cursor = conn.cursor()
+    sqltruncate = ("truncate table %s") % (table_name)
+    cursor.execute(sqltruncate)
+    conn.commit()
+
+
+
 def test_dataframe_to_mssql():
     """Test function"""
     mylist = [[1,2],[3,4],[5,6]]
