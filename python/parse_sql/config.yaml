@@ -1,0 +1,10 @@
+SQL_DRIVER: "SQL Server Native Client 11.0"
+SQL_SERVER: "localhost,2017"
+SQL_DATABASE: "parse_sql"
+SQL_LOGIN: "python_user"
+SQL_PASSWORD: "python_user"
+# Directory where the .sql files are
+SQL_DIR: "C:\\Users\\jong\\Documents\\GitHub\\Rave\\Medidata 5 RAVE Database Project"
+# Grab the current git git_tag from repo
+GIT_REPO_MAIN_DIR: "C:\\Users\\jong\\Documents\\GitHub\\Rave"
+GIT_REPO_NAME: "Rave"
