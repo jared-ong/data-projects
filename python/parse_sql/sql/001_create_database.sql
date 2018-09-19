@@ -16,10 +16,43 @@ GO
 
 SET ANSI_NULLS ON
 GO
+
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[all_tags](
-	[git_tag] [varchar](max) NULL
+
+CREATE TABLE [dbo].[git_tag_dates](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[git_repo] [nvarchar](255) NULL,
+	[git_tag] [nvarchar](255) NULL,
+	[git_tag_date] [datetime] NULL,
+ CONSTRAINT [PK_git_tag_dates] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[parse_sql](
+	[id] [bigint] IDENTITY(1,1) NOT NULL,
+	[full_path] [nvarchar](max) NULL,
+	[dir_path] [nvarchar](max) NULL,
+	[file_name] [nvarchar](255) NULL,
+	[file_content] [nvarchar](max) NULL,
+	[file_content_hash] [nvarchar](max) NULL,
+	[file_size] [bigint] NULL,
+	[git_repo] [nvarchar](255) NULL,
+	[git_tag] [nvarchar](255) NULL,
+ CONSTRAINT [PK_parse_sql] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
 
@@ -27,34 +60,23 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[parse_sql](
-	[id] [bigint] NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	[full_path] [varchar](max) NULL,
-	[dir_path] [varchar](max) NULL,
-	[file_name] [varchar](255) NULL,
-	[file_content] [varchar](max) NULL,
-	[file_content_hash] [varchar](max) NULL,
-	[file_size] [bigint] NULL,
-	[git_repo] [varchar](255) NULL,
-	[git_tag] [varchar](255) NULL
-) ON [PRIMARY] 
-GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE TABLE [dbo].[parse_sql_ddl](
-	[id] [bigint] NOT NULL IDENTITY(1,1) PRIMARY KEY,
-	[full_path] [varchar](max) NULL,
-	[dir_path] [varchar](max) NULL,
-	[file_name] [varchar](255) NULL,
-	[change_type] [varchar] (50) NULL,
-	[git_repo] [varchar](255) NULL,
-	[git_tag] [varchar](255) NULL,
-	[ddl] varchar(max) NULL,
-	[object_name] varchar(255) NULL
-) ON [PRIMARY] 
+	[id] [bigint] IDENTITY(1,1) NOT NULL,
+	[change_type] [nvarchar](50) NULL,
+	[ddl] [nvarchar](max) NULL,
+	[dir_path] [nvarchar](max) NULL,
+	[file_name] [nvarchar](255) NULL,
+	[full_path] [nvarchar](max) NULL,
+	[git_repo] [nvarchar](255) NULL,
+	[git_tag] [nvarchar](255) NULL,
+	[object_action] [nvarchar](50) NULL,
+	[object_name] [nvarchar](255) NULL,
+	[object_type] [nvarchar](255) NULL,
+ CONSTRAINT [PK_parse_sql_ddl] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
 
 SET ANSI_NULLS ON

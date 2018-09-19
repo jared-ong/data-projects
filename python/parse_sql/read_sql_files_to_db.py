@@ -8,11 +8,11 @@ Example to truncate the table before reload:
     truncate_sql_table()
 
 Example to reload data into table:
-    look_sql_all_tags()
+    populate_parse_sql_all_tags()
 
 Example to reload single tags:
-    look_sql_single_tag('v2017.2.0')
-    look_sql_single_tag('v2018.1.3')
+    populate_parse_sql_single_tag('v2017.2.0')
+    populate_parse_sql_single_tag('v2018.1.3')
 """
 
 import urllib
@@ -20,51 +20,99 @@ from pathlib import Path
 import os
 import hashlib
 import re
+from datetime import datetime
 import pandas as pd
 import git
-from sqlalchemy import create_engine
+import sqlalchemy
 import yaml
-import pyodbc
-import dataframe_conversions as dc
+import db_ops
 
 # Load the config yaml file
 with open('config.yaml') as fp:
-    my_configuration = yaml.load(fp)
+    MY_CONFIGURATION = yaml.load(fp)
 
 # pyodbc connection string
 DB_CONNECT_STRING = "DRIVER={%s};\
                      SERVER=%s;\
                      DATABASE=%s;\
                      UID=%s;\
-                     PWD=%s" % (my_configuration['SQL_DRIVER'],
-                     my_configuration['SQL_SERVER'],
-                     my_configuration['SQL_DATABASE'],
-                     my_configuration['SQL_LOGIN'],
-                     my_configuration['SQL_PASSWORD'])
+                     PWD=%s" % (MY_CONFIGURATION['SQL_DRIVER'],
+                                MY_CONFIGURATION['SQL_SERVER'],
+                                MY_CONFIGURATION['SQL_DATABASE'],
+                                MY_CONFIGURATION['SQL_LOGIN'],
+                                MY_CONFIGURATION['SQL_PASSWORD'])
+PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
+ENGINE = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
 
 # Directory where the .sql files are
-SQL_DIRECTORY = my_configuration['SQL_DIR']
+SQL_DIRECTORY = MY_CONFIGURATION['SQL_DIR']
 # Grab the current git git_tag from repo
-GIT_REPO_MAIN_DIRECTORY = my_configuration['GIT_REPO_MAIN_DIR']
-GIT_REPO = my_configuration['GIT_REPO_NAME']
+GIT_REPO_MAIN_DIRECTORY = MY_CONFIGURATION['GIT_REPO_MAIN_DIR']
+GIT_REPO = MY_CONFIGURATION['GIT_REPO_NAME']
 REPO = git.Repo(GIT_REPO_MAIN_DIRECTORY)
 G = git.Git(GIT_REPO_MAIN_DIRECTORY)
 
 
+def populate_get_tag_dates():
+    """Read from git repository all tags and last commit date.  Put in DB."""
+    tagslist = []
+    loginfo = G.log('--tags',
+                    '--simplify-by-decoration',
+                    '--pretty="format:%ci %d"')
+    loginfo = re.findall(r'".+"', loginfo)
+    for logentry in loginfo:
+        if "tag:" in logentry:
+            datepart = re.search(r"format:[0-9\-]+", logentry)
+            if datepart is None:
+                datepart = None
+            else:
+                datepart = datepart.group(0)
+            datepart = datepart.replace("format:", "")
+            datepart = datetime.strptime(datepart, '%Y-%m-%d')
+            tags = re.search(r'\(.+\)', logentry)
+            if tags is None:
+                tags = None
+            else:
+                tags = tags.group(0)
+            tags = tags.replace("(", "")
+            tags = tags.replace(")", "")
+            tags = tags.split(',')
+            for tag in tags:
+                if "tag:" in tag:
+                    tag = tag.replace("tag:", "")
+                    tag = tag.strip()
+                    tagslist.append({'git_repo': GIT_REPO,
+                                     'git_tag': tag,
+                                     'git_tag_date': datepart})
+                    print(datepart)
+                    print(tag)
+    tagsdf = pd.DataFrame(tagslist)
+    tagsdf.to_sql('git_tag_dates',
+                  ENGINE,
+                  if_exists='append',
+                  index=False,
+                  chunksize=1000,
+                  dtype={'git_repo': sqlalchemy.types.NVARCHAR(length=255),
+                         'git_tag': sqlalchemy.types.NVARCHAR(length=255),
+                         'git_tag_date': sqlalchemy.types.DateTime()})
+
+
 def get_file_content(full_path):
-    """Return the content of the file as a string."""
-    with open(full_path,
-              encoding="utf-8-sig",
-              errors="backslashreplace") as the_file:
-        # Return as string.
+    """Get file content function from read_sql_files_to_db.py."""
+    # print(full_path)
+    some_bytes = min(32, os.path.getsize(full_path))
+    raw = open(full_path, 'rb').read(some_bytes)
+    if '\\xff\\xfe' in str(raw):
+        # print("utf-16")
+        the_file = open(full_path, encoding="utf-16",
+                        errors="backslashreplace")
         data = the_file.read()
-        # Special case to handle ucs-2 be BOM files.
-        if '\\xff\\xfe' in data:
-            the_file = open(full_path,
-                            encoding="utf-16",
-                            errors="backslashreplace")
-            data = the_file.read()
-        return data
+    else:
+        # print("latin-1")
+        the_file = open(full_path, encoding="latin-1",
+                        errors="backslashreplace")
+        data = the_file.read()
+    return data
 
 
 def read_sql_files_to_dataframe(directory_path):
@@ -108,29 +156,38 @@ def read_sql_files_to_dataframe(directory_path):
     return df1
 
 
-def look_sql_all_tags():
+def populate_parse_sql_all_tags():
     """Loop through all tags in the repo, check them out, and pull the SQL."""
-    first_run = 1
     for git_tag in REPO.tags:
-        G.clean('-xdf')
-        G.checkout(git_tag)
-        df1 = read_sql_files_to_dataframe(SQL_DIRECTORY)
-        df1["git_repo"] = str(GIT_REPO)
-        df1["git_tag"] = str(git_tag)
-        dc.dataframe_to_mssql(DB_CONNECT_STRING, '[dbo]', '[parse_sql]', '[full_path], [dir_path], [file_name], [file_content], [file_content_hash], [file_size], [git_repo], [git_tag]', df1)
+        populate_parse_sql_single_tag(git_tag)
 
 
-def look_sql_single_tag(tagname):
+def populate_parse_sql_single_tag(tagname):
     """Pull single git_tag and append to existing table."""
     G.clean('-xdf')
     G.checkout(tagname)
     df1 = read_sql_files_to_dataframe(SQL_DIRECTORY)
     df1["git_repo"] = str(GIT_REPO)
     df1["git_tag"] = str(tagname)
-    dc.dataframe_to_mssql(DB_CONNECT_STRING, '[dbo]', '[parse_sql]', '[full_path], [dir_path], [file_name], [file_content], [file_content_hash], [file_size], [git_repo], [git_tag]', df1)
+    df1.to_sql('parse_sql',
+               ENGINE,
+               if_exists='append',
+               index=False,
+               chunksize=1000,
+               dtype={'full_path': sqlalchemy.types.NVARCHAR(),
+                      'dir_path':  sqlalchemy.types.NVARCHAR(),
+                      'file_name': sqlalchemy.types.NVARCHAR(length=255),
+                      'file_content': sqlalchemy.types.NVARCHAR(),
+                      'file_content_hash': sqlalchemy.types.NVARCHAR(length=255),  # noqa
+                      'file_size': sqlalchemy.types.BigInteger(),
+                      'git_repo': sqlalchemy.types.NVARCHAR(length=255),
+                      'git_tag': sqlalchemy.types.NVARCHAR(length=255)})
 
 
 if __name__ == "__main__":
-    dc.truncate_sql_table("parse_sql")
-    look_sql_single_tag('v2017.2.0')
-    look_sql_single_tag('v2018.1.3')
+    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
+    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_sql")
+    populate_get_tag_dates()
+    populate_parse_sql_all_tags()
+    # populate_parse_sql_single_tag('v2017.2.0')
+    # populate_parse_sql_single_tag('v2018.1.3')
