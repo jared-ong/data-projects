@@ -20,7 +20,7 @@ from pathlib import Path
 import os
 import hashlib
 import re
-from datetime import datetime
+from dateutil.parser import parse
 import pandas as pd
 import git
 import sqlalchemy
@@ -62,13 +62,15 @@ def populate_get_tag_dates():
     loginfo = re.findall(r'".+"', loginfo)
     for logentry in loginfo:
         if "tag:" in logentry:
-            datepart = re.search(r"format:[0-9\-]+", logentry)
+            datepart = re.search(r"format:[0-9\-]+[ ][0-9\:]+[ ][0-9\-+]+",
+                                 logentry)
             if datepart is None:
                 datepart = None
             else:
                 datepart = datepart.group(0)
             datepart = datepart.replace("format:", "")
-            datepart = datetime.strptime(datepart, '%Y-%m-%d')
+            # Parse date time with UTC offset using dateutil.parser
+            datepart = parse(datepart)
             tags = re.search(r'\(.+\)', logentry)
             if tags is None:
                 tags = None
@@ -95,6 +97,7 @@ def populate_get_tag_dates():
                   dtype={'git_repo': sqlalchemy.types.NVARCHAR(length=255),
                          'git_tag': sqlalchemy.types.NVARCHAR(length=255),
                          'git_tag_date': sqlalchemy.types.DateTime()})
+    return tagsdf
 
 
 def get_file_content(full_path):
@@ -186,8 +189,8 @@ def populate_parse_sql_single_tag(tagname):
 
 if __name__ == "__main__":
     db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_sql")
     populate_get_tag_dates()
-    populate_parse_sql_all_tags()
+    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_sql")
+    # populate_parse_sql_all_tags()
     # populate_parse_sql_single_tag('v2017.2.0')
     # populate_parse_sql_single_tag('v2018.1.3')
