@@ -1,0 +1,5 @@
+SQL_DRIVER: "SQL Server Native Client 11.0"
+SQL_SERVER: "localhost,2017"
+SQL_DATABASE: "rave_db_objects"
+SQL_LOGIN: "python_user"
+SQL_PASSWORD: "python_user"
