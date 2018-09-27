@@ -1,0 +1,1 @@
+["CREATE TRIGGER Purchasing.LowCredit", "CREATE TRIGGER safety", "CREATE TRIGGER Sales.bonus_reminder", "DROP TRIGGER safety", "DROP TRIGGER TRG_PREVENT_VIEW_DROP", "DROP \nTRIGGER [dbo].TRG_PREVENT_VIEW_DROP", "ALTER TRIGGER Sales.bonus_reminder", "ALTER TRIGGER trgAfterInsert", "ALTER TRIGGER trgAfterUpdate", "ALTER TRIGGER MyTrigger"]
