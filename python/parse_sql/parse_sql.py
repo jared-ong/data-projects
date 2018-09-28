@@ -47,15 +47,15 @@ def get_file_content(full_path):
         with open(full_path,
                   'r',
                   encoding="utf-16",
-                  errors="backslashreplace") as f:
-            data = f.read()        
+                  errors="backslashreplace") as the_file:
+            data = the_file.read()
     else:
         # print("latin-1")
         with open(full_path,
                   'r',
                   encoding="latin-1",
-                  errors="backslashreplace") as f:
-            data = f.read()        
+                  errors="backslashreplace") as the_file:
+            data = the_file.read()
     return data
 
 
@@ -74,48 +74,48 @@ def remove_empty_lists(the_list):
 
 
 def find_ddls(file_content):
-    """Search a string of file content and outputs all found DDL as list of lists."""
+    """Search string content and outputs all found DDL as list of lists."""
     find = []
     # Tables
     find = find + re.findall(r"\bCREATE\b\s+\bTABLE\b\s*[a-zA-Z0-9_\[\].#]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bTABLE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bTABLE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     # Select into from
     find = find + re.findall(r"\bINTO\b\s*[a-zA-Z0-9_\[\].#]+\s+\bFROM\b",
                              file_content, re.I)
     # Alter table add column
-    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(ADD){1}?\s*[a-zA-Z0-9_\[\].]+\s*[a-zA-Z0-9]*\s*(\()*[0-9,]*(\))*\s*(NOT)*\s*(NULL)*\s*,*\s*"
+    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(ADD){1}?\s*[a-zA-Z0-9_\[\].]+\s*[a-zA-Z0-9]*\s*(\()*[0-9,]*(\))*\s*(NOT)*\s*(NULL)*\s*,*\s*"  # noqa
     matches = re.finditer(regex, file_content, re.I)
     matchlist = []
-    for matchNum, match in enumerate(matches):
+    for match_num, match in enumerate(matches):
         matchlist.append(match.group())
     find = find + matchlist
 
     # Alter table drop column
-    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(DROP){1}?\s+(COLUMN){1}?\s*[a-zA-Z0-9_\[\].]+"
+    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(DROP){1}?\s+(COLUMN){1}?\s*[a-zA-Z0-9_\[\].]+"  # noqa
     matches = re.finditer(regex, file_content, re.I)
     matchlist = []
-    for matchNum, match in enumerate(matches):
+    for match_num, match in enumerate(matches):
         matchlist.append(match.group())
     find = find + matchlist
-    
+
     # Alter table alter column
-    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(ALTER){1}?\s+(COLUMN){1}?\s*[a-zA-Z0-9_\[\].]+\s*[a-zA-Z0-9]*\s*(\()*[0-9,]*(\))*\s*(NOT)*\s*(NULL)*\s*,*\s*"
+    regex = r"\bALTER\b\s+\bTABLE\s*[a-zA-Z0-9_\[\].]+\s*(ALTER){1}?\s+(COLUMN){1}?\s*[a-zA-Z0-9_\[\].]+\s*[a-zA-Z0-9]*\s*(\()*[0-9,]*(\))*\s*(NOT)*\s*(NULL)*\s*,*\s*"  # noqa
     matches = re.finditer(regex, file_content, re.I)
     matchlist = []
-    for matchNum, match in enumerate(matches):
+    for match_num, match in enumerate(matches):
         matchlist.append(match.group())
     find = find + matchlist
 
     # Procedures
-    find = find + re.findall(r"\bCREATE\b\s+\bPROCEDURE\b\s*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bCREATE\b\s+\bPROCEDURE\b\s*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bPROCEDURE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bPROCEDURE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bCREATE\b\s+\bPROC\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bPROC\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bPROC\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bALTER\b\s+\bPROCEDURE\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
@@ -124,28 +124,28 @@ def find_ddls(file_content):
     # Views
     find = find + re.findall(r"\bCREATE\b\s+\bVIEW\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bVIEW\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bVIEW\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bALTER\b\s+\bVIEW\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
     # Functions
     find = find + re.findall(r"\bCREATE\b\s+\bFUNCTION\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bFUNCTION\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bFUNCTION\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bALTER\b\s+\bFUNCTION\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
     # Types
     find = find + re.findall(r"\bCREATE\b\s+\bTYPE\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bTYPE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bTYPE\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bALTER\b\s+\bTYPE\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
     # Triggers
     find = find + re.findall(r"\bCREATE\b\s+\bTRIGGER\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
-    find = find + re.findall(r"\bDROP\b\s+\bTRIGGER\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bTRIGGER\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     find = find + re.findall(r"\bALTER\b\s+\bTRIGGER\b\s*[a-zA-Z0-9_\[\].]+",
                              file_content, re.I)
@@ -156,13 +156,13 @@ def find_ddls(file_content):
     # CREATE CLUSTERED INDEX
     # CREATE UNIQUE NONCLUSTERED INDEX
     # CREATE UNIUQE CLUSTERED INDEX
-    regex = r"\bCREATE\b\s+(UNIQUE)*\s*(CLUSTERED|NONCLUSTERED)*\s*\bINDEX\b\s*[a-zA-Z0-9_\[\].]+\s+\bON\b\s+[a-zA-Z0-9_\[\].#]+\s*\([a-zA-Z0-9_\[\]\s,]+\)"
+    regex = r"\bCREATE\b\s+(UNIQUE)*\s*(CLUSTERED|NONCLUSTERED)*\s*\bINDEX\b\s*[a-zA-Z0-9_\[\].]+\s+\bON\b\s+[a-zA-Z0-9_\[\].#]+\s*\([a-zA-Z0-9_\[\]\s,]+\)"  # noqa
     matches = re.finditer(regex, file_content, re.I)
     matchlist = []
-    for matchNum, match in enumerate(matches):
+    for match_num, match in enumerate(matches):
         matchlist.append(match.group())
     find = find + matchlist
-    find = find + re.findall(r"\bDROP\b\s+\bINDEX\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+\s*ON\s*[a-zA-Z0-9_\[\].]+",
+    find = find + re.findall(r"\bDROP\b\s+\bINDEX\b\s*(?:IF\s*EXISTS\s*?)*[a-zA-Z0-9_\[\].]+\s*ON\s*[a-zA-Z0-9_\[\].]+",  # noqa
                              file_content, re.I)
     # Rename objects
     find = find + re.findall(r"\bsp_rename\b\s*[@A-Za-z0-9'._= ]+,\s*[@A-Za-z0-9'._= ]+",  # noqa
@@ -190,8 +190,8 @@ def ddl_object_info(ddl_string):
     # If no create, alter, drop, or sp_rename found in DDL statement
     if object_action is None:  # select into case
         object_action = re.search(r"INTO\s+[a-zA-Z0-9_\[\].#]+\s+FROM",
-                              ddl_string,
-                              re.I)
+                                  ddl_string,
+                                  re.I)
         if object_action is not None:
             select_into = True
             object_action = "CREATE"
@@ -236,9 +236,9 @@ def ddl_object_info(ddl_string):
     else:
         # Replace word "into" if this is a select into x from ddl create table.
         ddl_string = re.sub(r'\binto\b',
-                             '',
-                             ddl_string,
-                             flags=re.I)
+                            '',
+                            ddl_string,
+                            flags=re.I)
         object_name = re.search(r"[\S]+", ddl_string, re.I)
     if object_name is not None:
         object_name = object_name.group(0)
@@ -255,7 +255,7 @@ def ddl_object_info(ddl_string):
         object_name = re.sub(r"\[", "", object_name, flags=re.I)
         object_name = re.sub(r"\]", "", object_name, flags=re.I)
         object_name = object_name.strip()
-        
+
     object_schema = "dbo"
 
     obj_info = (object_action,
@@ -264,6 +264,10 @@ def ddl_object_info(ddl_string):
                 object_type)
     return obj_info
 
+
+def hash_file(file_content):
+    the_hash = hashlib.md5(file_content.encode('utf-8'))
+    return the_hash.hexdigest()
 
 def parse_sql_to_dataframe(directory_path):
     """Recursive function to read .sql files into a dataframe."""
@@ -294,8 +298,7 @@ def parse_sql_to_dataframe(directory_path):
                               file_content)
         ddls = find_ddls(file_content)
         ddls = '||'.join(ddls)
-        the_hash = hashlib.md5(file_content.encode('utf-8'))
-        file_content_hash = the_hash.hexdigest()
+        file_content_hash = hash_file(file_content)
         file_size = os.path.getsize(path)
         # Append tuple
         datalist.append((path,
@@ -332,16 +335,16 @@ def parse_sql_normalize_ddl(dataframe):
         for ddl in ddls:
             object_action_name = ddl_object_info(ddl)
             datalist.append((the_row.full_path,
-            the_row.dir_path,
-            the_row.file_name,
-            the_row.file_content,
-            the_row.file_content_hash,
-            the_row.file_size,
-            ddl,  # single ddl
-            object_action_name[0],  # action
-            object_action_name[1],  # name
-            object_action_name[2],  # schema
-            object_action_name[3]))  # type
+                             the_row.dir_path,
+                             the_row.file_name,
+                             the_row.file_content,
+                             the_row.file_content_hash,
+                             the_row.file_size,
+                             ddl,  # single ddl
+                             object_action_name[0],  # action
+                             object_action_name[1],  # name
+                             object_action_name[2],  # schema
+                             object_action_name[3]))  # type
     return_df = pd.DataFrame(datalist, columns=headers)
     return return_df
 
