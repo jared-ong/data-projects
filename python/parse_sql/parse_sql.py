@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 import hashlib
 import re
-from dateutil.parser import parse
 import pandas as pd
 import sqlalchemy
 import yaml
@@ -173,99 +172,114 @@ def find_ddls(file_content):
     return find
 
 
+def split_name_schema(name_schema):
+    """Input string output a tuple of the object schema and name as parts"""
+    name_schema = name_schema.split(".")
+    if name_schema is None:
+        object_name = None
+        object_schema = None
+    elif len(name_schema) == 1:
+        object_name = name_schema[0]
+        object_schema = "dbo"
+    elif len(name_schema) == 2:
+        object_name = name_schema[1]
+        object_schema = name_schema[0]
+    elif len(name_schema) == 3:
+        object_name = name_schema[2]
+        object_schema = name_schema[1]
+    else:
+        object_name = None
+        object_schema = None
+
+    if object_name is not None:
+        object_name = object_name.replace(']', '')
+        object_name = object_name.replace('[', '')
+        object_name = object_name.replace(',', '')
+        object_name = object_name.replace("'", "")
+    if object_schema is not None:
+        object_schema = object_schema.replace(']', '')
+        object_schema = object_schema.replace('[', '')
+        object_schema = object_schema.replace(',', '')
+        object_schema = object_schema.replace("'", "")
+    name_schema_tuple = (object_schema, object_name)
+    return name_schema_tuple
+
+
 def ddl_object_info(ddl_string):
     """Return object_action, object name, object type as a tuple."""
-    ddl_string = re.sub(r'\[dbo\]\.', '', ddl_string, flags=re.I)
-    ddl_string = re.sub(r'dbo\.', '', ddl_string, flags=re.I)
-    ddl_string = re.sub(r'\bNONCLUSTERED\b', '',
-                        ddl_string,
-                        flags=re.I)
-    ddl_string = re.sub(r'\bCLUSTERED\b', '', ddl_string, flags=re.I)
-    ddl_string = re.sub(r'\bUNIQUE\b', '', ddl_string, flags=re.I)
-    select_into = False  # used to determine if this is a select into statement
-    # First, identify the object ddl action.
-    object_action = re.search(r"(\bcreate\b|\balter\b|\bdrop\b|\bsp_rename\b)",
-                              ddl_string,
-                              re.I)
-    # If no create, alter, drop, or sp_rename found in DDL statement
-    if object_action is None:  # select into case
-        object_action = re.search(r"INTO\s+[a-zA-Z0-9_\[\].#]+\s+FROM",
-                                  ddl_string,
-                                  re.I)
-        if object_action is not None:
-            select_into = True
-            object_action = "CREATE"
-    else:  # create, alter, drop, sp_rename case
-        object_action = object_action.group(0).upper()
-        ddl_string = re.sub(r'\b%s\b' % object_action,
-                            '',
-                            ddl_string,
-                            flags=re.I)
+    object_action = re.search(r"^[a-zA-Z_]+", ddl_string, re.I)
     if object_action is not None:
-        object_action = object_action.upper()
+        object_action = object_action.group().upper()
+
     # Next, identify the object type.
     # sp_rename could be any object type so we can't be sure.
     if object_action == 'SP_RENAME':
         object_type = None
-    elif select_into:
-        object_type = "TABLE"
-    else:
-        object_type = re.search(r"[A-Za-z0-9]+", ddl_string, re.I)
-        if object_type is not None:
-            object_type = object_type.group(0)
-            ddl_string = re.sub(r'\b%s\b' % object_type,
-                                '',
-                                ddl_string,
-                                flags=re.I)
-            object_type = re.sub(r'\bproc\b',
-                                 'PROCEDURE',
-                                 object_type,
-                                 flags=re.I)
+    object_type = re.search(r"(\bFUNCTION\b|\bINDEX\b|\bPROCEDURE\b|\bPROC\b|\bTABLE\b|\bTRIGGER\b|\bTYPE\b|\bVIEW\b)", ddl_string, re.I)
     if object_type is not None:
-            object_type = object_type.upper()
-    # Lastly, identify the object name if possible.
+        object_type = re.sub(r'\bPROC\b',
+                             'PROCEDURE',
+                             object_type.group(),
+                             flags=re.I)
+        object_type = object_type.upper()
+    # select into from statement creates a table
+    if object_action == "INTO":
+        object_action = "CREATE"
+        object_type = "TABLE"
+
+    # Lastly, identify the object schema andd name if possible.
+    name_schema = None  # temporarily stores schema.objectname
+    object_name = None
+    object_schema = None
+
     # SP_RENAME condition.
     if object_action == "SP_RENAME":
-        object_name = re.search(r"@newname[\s]*=[\s]*[N]*'[a-zA-Z0-9_\.']+",
+        # if newname parameter is specified look for that
+        name_schema = re.search(r"@newname[\s]*=[\s]*[N]*'[a-zA-Z0-9_\[\]\.]+",
                                 ddl_string, re.I)
-        if object_name is None:
-            object_name = re.search(r",\s*N*'*[a-zA-Z0-9_]+",
+        if name_schema is not None:
+            name_schema = name_schema.group()
+            name_schema = re.sub(r"(@newname)\s*=\s*",
+                                 "",
+                                 name_schema,
+                                 flags=re.I)
+        # if newname parameter is not specified look for second param
+        if name_schema is None:
+            name_schema = re.search(r",\s*N*'*[a-zA-Z0-9_\[\]\.]++",
                                     ddl_string,
                                     re.I)
-    # CREATE, ALTER, DROP condition.
-    else:
-        # Replace word "into" if this is a select into x from ddl create table.
-        ddl_string = re.sub(r'\binto\b',
-                            '',
-                            ddl_string,
-                            flags=re.I)
-        object_name = re.search(r"[\S]+", ddl_string, re.I)
-    if object_name is not None:
-        object_name = object_name.group(0)
-        # Replace =N'
-        object_name = re.sub("[=\s]+N'", "", object_name, flags=re.I)
-        # Replace ='
-        object_name = re.sub("[=\s]+'", "", object_name, flags=re.I)
-        # Replace @newname
-        object_name = re.sub(r'@newname[\s]*', '',
-                             object_name, flags=re.I)
-        # Replace other single characters ,' [ ]
-        object_name = re.sub(r",", "", object_name, flags=re.I)
-        object_name = re.sub(r"'", "", object_name, flags=re.I)
-        object_name = re.sub(r"\[", "", object_name, flags=re.I)
-        object_name = re.sub(r"\]", "", object_name, flags=re.I)
-        object_name = object_name.strip()
+            if name_schema is not None:
+                name_schema = name_schema.group()
 
-    object_schema = "dbo"
+    # CREATE, ALTER, DROP condition.
+    if name_schema is None:
+        name_schema = re.sub(r"(\bCREATE\b|\bALTER\b|\bDROP\b|\bINTO\b)\s*",
+                             "",
+                             ddl_string,
+                             flags=re.I)
+        name_schema = re.sub(r"(\bFUNCTION\b|\bINDEX\b|\bPROCEDURE\b|\bPROC\b|\bTABLE\b|\bTRIGGER\b|\bTYPE\b|\bVIEW\b)\s*",
+                             "",
+                             name_schema,
+                             flags=re.I)
+        name_schema = re.search(r"[a-zA-Z0-9_\[\]\.]+",
+                                name_schema,
+                                re.I)
+        if name_schema is not None:
+            name_schema = name_schema.group()
+    # Pull the schema and object name
+    name_schema = split_name_schema(name_schema)
+    object_schema = name_schema[0]
+    object_name = name_schema[1]
 
     obj_info = (object_action,
-                object_name,
+                object_type,
                 object_schema,
-                object_type)
+                object_name)
     return obj_info
 
 
 def hash_file(file_content):
+    """Create an md5 of file contents"""
     the_hash = hashlib.md5(file_content.encode('utf-8'))
     return the_hash.hexdigest()
 
@@ -342,9 +356,9 @@ def parse_sql_normalize_ddl(dataframe):
                              the_row.file_size,
                              ddl,  # single ddl
                              object_action_name[0],  # action
-                             object_action_name[1],  # name
+                             object_action_name[3],  # name
                              object_action_name[2],  # schema
-                             object_action_name[3]))  # type
+                             object_action_name[1]))  # type
     return_df = pd.DataFrame(datalist, columns=headers)
     return return_df
 
