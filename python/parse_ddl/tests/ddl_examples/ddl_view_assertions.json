@@ -1,0 +1,1 @@
+["CREATE VIEW [Products", "CREATE VIEW hiredate_view", "CREATE VIEW Purchasing.PurchaseOrderReject", "CREATE VIEW dbo.SeattleOnly", "CREATE VIEW Sales.SalesPersonPerform", "CREATE VIEW Customers", "DROP VIEW view_name", "drop view dbo.asdf", "drop View [dbo].[my_view_name]", "ALTER VIEW HumanResources.EmployeeHireDate", "alter VIEW \n\temp_view", "ALTER  VIEW [dbo].[tbl]"]

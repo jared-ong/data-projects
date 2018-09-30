@@ -1,0 +1,1 @@
+["CREATE TYPE SSN", "CREATE TYPE [schema].[LocationTableType]", "CREATE TYPE dbo.StateTbl", "DROP TYPE ssn", "DROP TYPE IF EXISTS ssn", "DROP TYPE [dbo].[ssn]", "ALTER TYPE SSN", "ALTER TYPE [schema].[LocationTableType]", "ALTER TYPE dbo.StateTbl"]
