@@ -174,7 +174,8 @@ def find_ddls(file_content):
 
 def split_name_schema(name_schema):
     """Input string output a tuple of the object schema and name as parts"""
-    name_schema = name_schema.split(".")
+    if name_schema is not None:
+        name_schema = name_schema.split(".")
     if name_schema is None:
         object_name = None
         object_schema = None
@@ -195,12 +196,17 @@ def split_name_schema(name_schema):
         object_name = object_name.replace(']', '')
         object_name = object_name.replace('[', '')
         object_name = object_name.replace(',', '')
+        object_name = object_name.replace("N'", "")
         object_name = object_name.replace("'", "")
+        object_name = object_name.strip()
     if object_schema is not None:
         object_schema = object_schema.replace(']', '')
         object_schema = object_schema.replace('[', '')
         object_schema = object_schema.replace(',', '')
+        object_schema = object_schema.replace("N'", "")
         object_schema = object_schema.replace("'", "")
+        object_schema = object_schema.strip()
+        
     name_schema_tuple = (object_schema, object_name)
     return name_schema_tuple
 
@@ -245,7 +251,7 @@ def ddl_object_info(ddl_string):
                                  flags=re.I)
         # if newname parameter is not specified look for second param
         if name_schema is None:
-            name_schema = re.search(r",\s*N*'*[a-zA-Z0-9_\[\]\.]++",
+            name_schema = re.search(r",\s*N*'*[a-zA-Z0-9_\[\]\.]+",
                                     ddl_string,
                                     re.I)
             if name_schema is not None:
@@ -283,7 +289,7 @@ def hash_file(file_content):
     the_hash = hashlib.md5(file_content.encode('utf-8'))
     return the_hash.hexdigest()
 
-def parse_sql_to_dataframe(directory_path):
+def parse_ddl_to_dataframe(directory_path):
     """Recursive function to read .sql files into a dataframe."""
     file_ends_with = '.sql'
     glob_pattern = '**/*' + file_ends_with
@@ -327,8 +333,8 @@ def parse_sql_to_dataframe(directory_path):
     return df1
 
 
-def parse_sql_normalize_ddl(dataframe):
-    """Take the parse_sql dataframe and normalize the ddls to one per row"""
+def parse_ddl_normalize_ddl(dataframe):
+    """Take the parse_ddl dataframe and normalize the ddls to one per row"""
     # Define the list of lists to use to create the dataframe
     datalist = []
     # First list is the column headers for later use in the dataframe
@@ -363,11 +369,11 @@ def parse_sql_normalize_ddl(dataframe):
     return return_df
 
 
-def parse_sql_to_db(directory):
-    """Pull single git_tag and append to existing table."""
-    df1 = parse_sql_to_dataframe(directory)
-    df2 = parse_sql_normalize_ddl(df1)
-    df1.to_sql('parse_sql',
+def parse_ddl_to_db(directory):
+    """Pull sql files into data frame, parse the ddls, save to database."""
+    df1 = parse_ddl_to_dataframe(directory)
+    df2 = parse_ddl_normalize_ddl(df1)
+    df1.to_sql('parse_ddl',
                ENGINE,
                if_exists='append',
                index=False,
@@ -379,7 +385,7 @@ def parse_sql_to_db(directory):
                       'file_content_hash': sqlalchemy.types.NVARCHAR(length=255),  # noqa
                       'file_size': sqlalchemy.types.BigInteger(),
                       'ddl': sqlalchemy.types.NVARCHAR()})
-    df2.to_sql('parse_sql_ddl',
+    df2.to_sql('parse_ddl_objects',
                ENGINE,
                if_exists='append',
                index=False,
@@ -398,8 +404,8 @@ def parse_sql_to_db(directory):
 
 
 if __name__ == "__main__":
-    # df1 = parse_sql_to_dataframe(SQL_DIRECTORY)
-    # df2 = parse_sql_normalize_ddl(df1)
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_sql")
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_sql_ddl")
-    parse_sql_to_db(SQL_DIRECTORY)
+    # df1 = parse_ddl_to_dataframe(SQL_DIRECTORY)
+    # df2 = parse_ddl_normalize_ddl(df1)
+    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl")
+    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl_objects")
+    parse_ddl_to_db(SQL_DIRECTORY)

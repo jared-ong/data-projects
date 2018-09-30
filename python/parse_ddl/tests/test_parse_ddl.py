@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Test parse_sql functions
+Test parse_ddl functions
 
 @author: jong
 """
@@ -8,8 +8,7 @@ Test parse_sql functions
 
 import unittest
 import json
-import parse_sql
-
+from .context import parse_ddl
 
 class TestParseSQL(unittest.TestCase):
 
@@ -22,19 +21,19 @@ class TestParseSQL(unittest.TestCase):
         lisotype.append(lista)
         lisotype.append(listb)
         lisotype.append(listc)
-        lisotype = parse_sql.remove_empty_lists(lisotype)
+        lisotype = parse_ddl.remove_empty_lists(lisotype)
         list2.append(lista)
         list2.append(listb)
         self.assertEqual(lisotype, list2)
 
 
     def test_get_file_content(self):
-        file1 = "test\\file1.sql"  # UCS2 LE BOM
-        file2 = "test\\file2.sql"  # UTF-8
-        file3 = "test\\file3.sql"  # ANSI
-        contenotype = parse_sql.get_file_content(file1)
-        content2 = parse_sql.get_file_content(file2)
-        content3 = parse_sql.get_file_content(file3)
+        file1 = "tests\\file1.sql"  # UCS2 LE BOM
+        file2 = "tests\\file2.sql"  # UTF-8
+        file3 = "tests\\file3.sql"  # ANSI
+        contenotype = parse_ddl.get_file_content(file1)
+        content2 = parse_ddl.get_file_content(file2)
+        content3 = parse_ddl.get_file_content(file3)
         self.assertEqual(contenotype, content2)
         self.assertEqual(contenotype, content3)
 
@@ -42,10 +41,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_table(self):
         otype = "table"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -60,10 +59,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_procedure(self):
         otype = "procedure"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -78,10 +77,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_view(self):
         otype = "view"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -96,10 +95,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_function(self):
         otype = "function"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -114,10 +113,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_type(self):
         otype = "type"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -133,10 +132,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_trigger(self):
         otype = "trigger"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -151,10 +150,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_index(self):
         otype = "index"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -169,10 +168,10 @@ class TestParseSQL(unittest.TestCase):
     def test_find_ddls_rename(self):
         otype = "rename"
         regen_assertions = False  # Always false unless examples change
-        file_path = "test\\ddl_examples\\ddl_%s_examples.sql" % (otype)
-        assertions = "test\\ddl_examples\\ddl_%s_assertions.json" % (otype)
-        file_content = parse_sql.get_file_content(file_path)
-        ddl = parse_sql.find_ddls(file_content)
+        file_path = "tests\\ddl_examples\\ddl_%s_examples.sql" % (otype)
+        assertions = "tests\\ddl_examples\\ddl_%s_assertions.json" % (otype)
+        file_content = parse_ddl.get_file_content(file_path)
+        ddl = parse_ddl.find_ddls(file_content)
         # This is to regenerate the json assertion if examples change
         if regen_assertions:
             with open(assertions, "w") as outfile:
@@ -184,20 +183,20 @@ class TestParseSQL(unittest.TestCase):
         self.assertEqual(assert_list, ddl)
 
 
-    def test_parse_sql_to_dataframe(self):
-        the_directory = "test\\ddl_examples"
-        the_df = parse_sql.parse_sql_to_dataframe(the_directory)
+    def test_parse_ddl_to_dataframe(self):
+        the_directory = "tests\\ddl_examples"
+        the_df = parse_ddl.parse_ddl_to_dataframe(the_directory)
         self.assertEqual((8, 7), the_df.shape)
 
 
     def test_split_name_schema(self):
         name_schema = "[prod].[mytable]"
-        name_schema = parse_sql.split_name_schema(name_schema)
+        name_schema = parse_ddl.split_name_schema(name_schema)
         self.assertEqual(name_schema[0], "prod")
         self.assertEqual(name_schema[1], "mytable")
 
         name_schema = "mydbname.dbo.ProcedureName"
-        name_schema = parse_sql.split_name_schema(name_schema)
+        name_schema = parse_ddl.split_name_schema(name_schema)
         self.assertEqual(name_schema[0], "dbo")
         self.assertEqual(name_schema[1], "ProcedureName")
 
@@ -208,7 +207,7 @@ class TestParseSQL(unittest.TestCase):
                        "TABLE",
                        "dbo",
                        "mytablea")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
 
         the_string = "Create Procedure [dbo].[spSSS_Update]"
@@ -216,7 +215,7 @@ class TestParseSQL(unittest.TestCase):
                        "PROCEDURE",
                        "dbo",
                        "spSSS_Update")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
 
         the_string = "drop proc spSSS_Update"
@@ -224,7 +223,7 @@ class TestParseSQL(unittest.TestCase):
                        "PROCEDURE",
                        "dbo",
                        "spSSS_Update")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
 
         the_string = "drop table [dbo].[c_Aaaa_Bbb]"
@@ -232,7 +231,7 @@ class TestParseSQL(unittest.TestCase):
                        "TABLE",
                        "dbo",
                        "c_Aaaa_Bbb")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
 
         the_string = "into BK_GOTCH_234_CheckIDFix_ON_PART from"
@@ -240,7 +239,7 @@ class TestParseSQL(unittest.TestCase):
                        "TABLE",
                        "dbo",
                        "BK_GOTCH_234_CheckIDFix_ON_PART")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
 
         the_string = ("sp_rename \
@@ -250,9 +249,18 @@ class TestParseSQL(unittest.TestCase):
                        None,
                        "dbo",
                        "ApplicationName")
-        obj_info = parse_sql.ddl_object_info(the_string)
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
-
+        
+        the_string = ("sp_rename \
+                      N'dbo.Audits.IX_Audits_AuditSubCategoryID', \
+                      N'IX_Audits_AuditSubCategoryID_old'")
+        assert_info = ("SP_RENAME",
+                       None,
+                       "dbo",
+                       "IX_Audits_AuditSubCategoryID_old")
+        obj_info = parse_ddl.ddl_object_info(the_string)
+        self.assertEqual(assert_info, obj_info)        
 
 if __name__ == '__main__':
     unittest.main()

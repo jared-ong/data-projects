@@ -1,6 +1,6 @@
 SQL_DRIVER: "SQL Server Native Client 11.0"
 SQL_SERVER: "localhost,2017"
-SQL_DATABASE: "parse_sql"
+SQL_DATABASE: "parse_ddl"
 SQL_LOGIN: "python_user"
 SQL_PASSWORD: "python_user"
 # Directory where to recursively look for .sql files
