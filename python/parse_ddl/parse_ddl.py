@@ -267,6 +267,10 @@ def ddl_object_info(ddl_string):
                              "",
                              name_schema,
                              flags=re.I)
+        name_schema = re.sub(r"(\bCLUSTERED\b|\bNONCLUSTERED\b|\bUNIQUE\b)\s*",
+                             "",
+                             name_schema,
+                             flags=re.I)        
         name_schema = re.search(r"[a-zA-Z0-9_\[\]\.]+",
                                 name_schema,
                                 re.I)

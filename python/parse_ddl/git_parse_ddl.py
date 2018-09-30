@@ -308,8 +308,10 @@ def git_compare_all_tags():
 
 
 if __name__ == "__main__":
+    # Pull all tags and save to database
     db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
     populate_git_tag_dates()
+    # Loop through all tags in order and pull object name, schema, types
     db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl")
     db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl_objects")
     git_parse_ddl_all_tags()
