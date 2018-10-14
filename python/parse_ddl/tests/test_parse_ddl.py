@@ -10,7 +10,7 @@ import unittest
 import json
 from .context import parse_ddl
 
-class TestParseSQL(unittest.TestCase):
+class TestParseDDL(unittest.TestCase):
 
     def test_remove_empty_lists(self):
         lista = [1, 2, 3]
@@ -282,7 +282,16 @@ class TestParseSQL(unittest.TestCase):
                        "dbo",
                        "IX_Audits_AuditSubCategoryID_old")
         obj_info = parse_ddl.ddl_object_info(the_string)
+        self.assertEqual(assert_info, obj_info)
+        
+        the_string = ("sp_Rename UploadFileConfigs, UploadFileConfigs_Backup")
+        assert_info = ("SP_RENAME",
+                       None,
+                       "dbo",
+                       "UploadFileConfigs_Backup")
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)        
+
 
 if __name__ == '__main__':
     unittest.main()

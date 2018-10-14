@@ -14,24 +14,25 @@ import yaml
 import db_ops
 
 # Load the config yaml file
-with open('config.yaml') as fp:
-    MY_CONFIGURATION = yaml.load(fp)
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.yaml')
+with open(CONFIG_FILE) as yaml_file:
+    CFG = yaml.safe_load(yaml_file)
 
 # pyodbc connection string
 DB_CONNECT_STRING = "DRIVER={%s};\
                      SERVER=%s;\
                      DATABASE=%s;\
                      UID=%s;\
-                     PWD=%s" % (MY_CONFIGURATION['SQL_DRIVER'],
-                                MY_CONFIGURATION['SQL_SERVER'],
-                                MY_CONFIGURATION['SQL_DATABASE'],
-                                MY_CONFIGURATION['SQL_LOGIN'],
-                                MY_CONFIGURATION['SQL_PASSWORD'])
+                     PWD=%s" % (CFG['SQL_DRIVER'],
+                                CFG['SQL_SERVER'],
+                                CFG['SQL_DATABASE'],
+                                CFG['SQL_LOGIN'],
+                                CFG['SQL_PASSWORD'])
 PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
 ENGINE = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
 
 # Directory where the .sql files are
-SQL_DIRECTORY = MY_CONFIGURATION['SQL_DIR']
+SQL_DIRECTORY = CFG['SQL_DIR']
 
 
 def get_file_content(full_path):
@@ -345,9 +346,6 @@ def parse_ddl_normalize_ddl(dataframe):
     headers = ('full_path',
                'dir_path',
                'file_name',
-               'file_content',
-               'file_content_hash',
-               'file_size',
                'ddl',
                'object_action',
                'object_name',
@@ -361,9 +359,6 @@ def parse_ddl_normalize_ddl(dataframe):
             datalist.append((the_row.full_path,
                              the_row.dir_path,
                              the_row.file_name,
-                             the_row.file_content,
-                             the_row.file_content_hash,
-                             the_row.file_size,
                              ddl,  # single ddl
                              object_action_name[0],  # action
                              object_action_name[3],  # name
@@ -397,9 +392,6 @@ def parse_ddl_to_db(directory):
                dtype={'full_path': sqlalchemy.types.NVARCHAR(),
                       'dir_path': sqlalchemy.types.NVARCHAR(),
                       'file_name': sqlalchemy.types.NVARCHAR(length=255),
-                      'file_content': sqlalchemy.types.NVARCHAR(),
-                      'file_content_hash': sqlalchemy.types.NVARCHAR(length=255),  # noqa
-                      'file_size': sqlalchemy.types.BigInteger(),
                       'ddl': sqlalchemy.types.NVARCHAR(),
                       'object_action': sqlalchemy.types.NVARCHAR(length=50),
                       'object_name': sqlalchemy.types.NVARCHAR(length=255),
@@ -408,8 +400,6 @@ def parse_ddl_to_db(directory):
 
 
 if __name__ == "__main__":
-    # df1 = parse_ddl_to_dataframe(SQL_DIRECTORY)
-    # df2 = parse_ddl_normalize_ddl(df1)
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl")
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl_objects")
+    #db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl")
+    #db_ops.truncate_sql_table(DB_CONNECT_STRING, "parse_ddl_objects")
     parse_ddl_to_db(SQL_DIRECTORY)

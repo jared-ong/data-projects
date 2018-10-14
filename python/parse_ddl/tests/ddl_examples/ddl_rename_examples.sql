@@ -39,7 +39,7 @@ sp_rename @objname = 'tableC' ,  @newname = 'tableD'
      , @objtype = 'TABLE'  
 
 
-
+EXEC sp_Rename UploadFileConfigs, UploadFileConfigs_Backup
 
 
 

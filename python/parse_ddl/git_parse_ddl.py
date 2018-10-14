@@ -4,31 +4,34 @@ import re
 import git
 import sqlalchemy
 import yaml
+import os
 import pandas as pd
+import pytz
 import db_ops
 import parse_ddl
 
 
 # Load the config yaml file
-with open('config.yaml') as fp:
-    MY_CONFIGURATION = yaml.load(fp)
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.yaml')
+with open(CONFIG_FILE) as yaml_file:
+    CFG = yaml.safe_load(yaml_file)
 
 # pyodbc connection string
 DB_CONNECT_STRING = "DRIVER={%s};\
                      SERVER=%s;\
                      DATABASE=%s;\
                      UID=%s;\
-                     PWD=%s" % (MY_CONFIGURATION['SQL_DRIVER'],
-                                MY_CONFIGURATION['SQL_SERVER'],
-                                MY_CONFIGURATION['SQL_DATABASE'],
-                                MY_CONFIGURATION['SQL_LOGIN'],
-                                MY_CONFIGURATION['SQL_PASSWORD'])
+                     PWD=%s" % (CFG['SQL_DRIVER'],
+                                CFG['SQL_SERVER'],
+                                CFG['SQL_DATABASE'],
+                                CFG['SQL_LOGIN'],
+                                CFG['SQL_PASSWORD'])
 PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
 ENGINE = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
 
 # Grab the current git git_tag from repo
-GIT_REPO_MAIN_DIR = MY_CONFIGURATION['GIT_REPO_MAIN_DIR']
-GIT_REPO = MY_CONFIGURATION['GIT_REPO_NAME']
+GIT_REPO_MAIN_DIR = CFG['GIT_REPO_MAIN_DIR']
+GIT_REPO = CFG['GIT_REPO_NAME']
 REPO = git.Repo(GIT_REPO_MAIN_DIR)
 G = git.Git(GIT_REPO_MAIN_DIR)
 
@@ -50,6 +53,8 @@ def populate_git_tag_dates():
             datepart = datepart.replace("format:", "")
             # Parse date time with UTC offset using dateutil.parser
             datepart = parser.parse(datepart)
+            utc = pytz.UTC
+            datepart = datepart.replace(tzinfo=utc) - datepart.utcoffset()
             tags = re.search(r'\(.+\)', logentry)
             if tags is None:
                 tags = None
@@ -311,11 +316,13 @@ if __name__ == "__main__":
     # Pull all tags and save to database
     db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
     populate_git_tag_dates()
+
     # Loop through all tags in order and pull object name, schema, types
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl")
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl_objects")
-    git_parse_ddl_all_tags()
+    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl")
+    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl_objects")
+    # git_parse_ddl_all_tags()
+
     # Loop through all tags in order and compare before and after tag
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_compare_two_tags")
-    git_compare_all_tags()
+    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_compare_two_tags")
+    # git_compare_all_tags()
     
