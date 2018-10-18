@@ -1,4 +1,5 @@
 from dateutil import parser
+import datetime
 import urllib
 import re
 import git
@@ -70,9 +71,13 @@ def populate_git_tag_dates():
                     tagslist.append({'git_repo': GIT_REPO,
                                      'git_tag': tag,
                                      'git_tag_date': datepart})
-                    print(datepart)
-                    print(tag)
+    if len(tagslist) == 0:
+        # If no tags, append master as the default
+        tagslist.append({'git_repo': GIT_REPO,
+                         'git_tag': 'master',
+                         'git_tag_date': datetime.datetime.now()})
     tagsdf = pd.DataFrame(tagslist)
+    tagsdf["git_tag_date"] = tagsdf['git_tag_date'].astype('datetime64')
     tagsdf.to_sql('git_tag_dates',
                   ENGINE,
                   if_exists='append',
@@ -170,16 +175,11 @@ def read_tag_to_dataframe(git_repo, git_tag):
     # Delete the second duplicate file_content_hash values from each dataframe.
     dfx = dfx.drop_duplicates(subset='file_content_hash', keep='first')
     
-    # Remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
-    #string_contains = 'Rave_Viper_Lucy_Merged_DB_Scripts'
-    #dfx = dfx[dfx['dir_path'].str.contains(string_contains)]
-    
+
     # Remove certain directory paths the ~ is the opposite result set
     dfx = dfx[~dfx['dir_path'].str.contains('tSQLt_UnitTests')]
     dfx = dfx[~dfx['dir_path'].str.contains('Samples')]
     dfx = dfx[~dfx['dir_path'].str.contains('SolarWinds')]
-    #dfx = dfx[~dfx['dir_path'].str.contains('Registry1')]
-    #dfx = dfx[~dfx['dir_path'].str.contains('TSDV DB Install Scripts')]
     return dfx
 
 
@@ -314,15 +314,14 @@ def git_compare_all_tags():
 
 if __name__ == "__main__":
     # Pull all tags and save to database
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_tag_dates", GIT_REPO)
     populate_git_tag_dates()
 
     # Loop through all tags in order and pull object name, schema, types
-    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl")
-    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl_objects")
-    # git_parse_ddl_all_tags()
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_parse_ddl", GIT_REPO)
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_parse_ddl_objects", GIT_REPO)
+    git_parse_ddl_all_tags()
 
     # Loop through all tags in order and compare before and after tag
-    # db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_compare_two_tags")
-    # git_compare_all_tags()
-    
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_compare_two_tags", GIT_REPO)
+    git_compare_all_tags()

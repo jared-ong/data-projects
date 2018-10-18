@@ -17,7 +17,7 @@ $filename = "C:\Temp\AllDatabaseObjects" + $enddate + ".csv"
 $thequery = "
 set transaction isolation level read uncommitted
 
-select o.name as object_name, o.type_desc, po.name as parent_object_name, o.create_date, o.modify_date 
+select schema_name(o.schema_id) as schema_name, o.name as object_name, o.type_desc, po.name as parent_object_name, o.create_date, o.modify_date 
 from sys.objects o
 left outer join sys.objects po on o.parent_object_id = po.object_id
 --left outer join (select distinct object_name from parse_sql.dbo.parse_sql_ddl) sub on o.name = sub.object_name
@@ -27,7 +27,16 @@ where o.is_ms_shipped = 0
 and cvs.ViewName is null
 and o.name not like 'BK_%'
 and o.type_desc NOT IN ('DEFAULT_CONSTRAINT', 'CHECK_CONSTRAINT', 'FOREIGN_KEY_CONSTRAINT', 'PRIMARY_KEY_CONSTRAINT', 'UNIQUE_CONSTRAINT')
-and o.name not like 'V_%Metrics$%'
+and o.name not like '%Metrics$%'
+and o.name not like '%SqlQueryNotification%'
+and o.name not like 'spLabsGetRange%'
+and o.name not like 'spLabsCheckDuplicateRange%'
+and o.name not like 'IndexTableDetail'
+and o.name not like '%_pre201810'
+and o.name not like '%_post201810'
+and o.name not like '%_bak'
+and o.name not like '%_old'
+and schema_name(o.schema_id) NOT IN ('cdc','sys')
 
 "
 

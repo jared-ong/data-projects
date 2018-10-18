@@ -38,6 +38,8 @@ SQL_DIRECTORY = CFG['SQL_DIR']
 def get_file_content(full_path):
     """Get file content function from read_sql_files_to_db.py."""
     # print(full_path)
+    if os.path.isdir(full_path):
+        return ""
     some_bytes = min(32, os.path.getsize(full_path))
     binary_file = open(full_path, 'rb')
     raw = binary_file.read(some_bytes)
@@ -296,7 +298,7 @@ def hash_file(file_content):
 
 def parse_ddl_to_dataframe(directory_path):
     """Recursive function to read .sql files into a dataframe."""
-    file_ends_with = '.sql'
+    file_ends_with = '.sql*'
     glob_pattern = '**/*' + file_ends_with
     # Define the list of lists to use to create the dataframe
     datalist = []
@@ -316,24 +318,25 @@ def parse_ddl_to_dataframe(directory_path):
         split_path = os.path.split(os.path.abspath(path))
         dir_path = split_path[0]
         file_name = split_path[1]
-        file_content = get_file_content(path)
-        # Replace sql comments with nothing
-        file_content = re.sub(r"(--.*)|(((/\*)+?[\w\W]+?(\*/)+))",
-                              "",
-                              file_content)
-        ddls = find_ddls(file_content)
-        ddls = '||'.join(ddls)
-        file_content_hash = hash_file(file_content)
-        file_size = os.path.getsize(path)
-        # Append tuple
-        datalist.append((path,
-                         dir_path,
-                         file_name,
-                         file_content,
-                         file_content_hash,
-                         file_size,
-                         ddls))
-        print(path)
+        if os.path.isfile(path):
+            file_content = get_file_content(path)
+            # Replace sql comments with nothing
+            file_content = re.sub(r"(--.*)|(((/\*)+?[\w\W]+?(\*/)+))",
+                                  "",
+                                  file_content)
+            ddls = find_ddls(file_content)
+            ddls = '||'.join(ddls)
+            file_content_hash = hash_file(file_content)
+            file_size = os.path.getsize(path)
+            # Append tuple
+            datalist.append((path,
+                             dir_path,
+                             file_name,
+                             file_content,
+                             file_content_hash,
+                             file_size,
+                             ddls))
+            print(path)
     df1 = pd.DataFrame(datalist, columns=headers)
     return df1
 

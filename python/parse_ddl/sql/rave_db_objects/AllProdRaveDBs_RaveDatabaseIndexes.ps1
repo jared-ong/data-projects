@@ -17,7 +17,7 @@ $filename = "C:\Temp\AllDatabaseIndexes" + $enddate + ".csv"
 $thequery = "
 set transaction isolation level read uncommitted
 
-select i.name as index_name, o.name as table_name, i.index_id, i.type_desc, i.is_unique, i.is_primary_key, i.is_unique_constraint
+select schema_name(o.schema_id) as schema_name, i.name as index_name, o.name as table_name, i.index_id, i.type_desc, i.is_unique, i.is_primary_key, i.is_unique_constraint
 from sys.indexes i
 inner join sys.objects o on i.object_id = o.object_id
 left outer join (select ViewName from dbo.ClinicalViews) cvs on o.name = cvs.ViewName
@@ -25,6 +25,16 @@ where o.is_ms_shipped = 0
 and cvs.ViewName is null
 and o.name not like 'BK_%'
 and o.name not like 'V_%Metrics$%'
+and o.name not like '%Metrics$%'
+and o.name not like '%SqlQueryNotification%'
+and o.name not like 'spLabsGetRange%'
+and o.name not like 'spLabsCheckDuplicateRange%'
+and o.name not like 'IndexTableDetail'
+and o.name not like '%_pre201810'
+and o.name not like '%_post201810'
+and o.name not like '%_bak'
+and o.name not like '%_old'
+and schema_name(o.schema_id) NOT IN ('cdc','sys')
 
 "
 
