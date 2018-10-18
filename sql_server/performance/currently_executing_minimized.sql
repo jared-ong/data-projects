@@ -4,13 +4,19 @@ RUNNING–meaning that the query is actively running on the CPU
 RUNNABLE–meaning that the query is ready to run but CPU resources are not yet available. It is waiting in the Runnable Queue for a CPU to open up
 SUSPENDED–meaning that the query is waiting for a third party resource to become available (for example,, disk I/O, blocking and so on)
 ****/
--- This query is based around sys.dm_exec_requests which shows one row for each statement currently executing on the server.
+
+-- this query is based around sys.dm_exec_requests which shows one row for each statement currently executing on the server.
 -- Other views and columns have been brought in to complete the information but it is still 1 row per request.
+-- It is filtered to exclude system sessions (session_id <= 50) as well as requests running for less than 5 seconds.
+-- uncomment the two lines to also include the execution plan of the statements, this will take longer to run
+-- another line is commented if you want every column available
+-- the where clause line is also commented but if you get too many results then use it to filter longer running statements
 select er.session_id
        ,s.kpid
        ,'dbcc inputbuffer ('+cast(er.session_id as varchar(15)) + ');' as dbccinputbuffer
        ,es.login_name
        ,s.status
+	   ,s.cmd
        ,er.wait_type
        ,s.lastwaittype
        ,s.waittime/1000 as wait_time_seconds

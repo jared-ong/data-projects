@@ -1,5 +1,17 @@
 *.pyc
+*/config.yaml
+**/.zip
+**/client_secrets.json
+**/credentials.json
+**/.idea/**
+**/venv/**
+**/.suo
+**/.pyproj
+**/.sln
+**/calendar.dat
 *.pyo
 python/data.json
 python/push_data_to_google_sheets/client_secret.json
 python/push_data_to_google_sheets/jareddev-206516-5f3eeac597bd.json
+python/falcon_dba_info/whois_data/urls_not_in_falcon.csv
+python/parse_ddl/config.yaml

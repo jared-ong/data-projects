@@ -10,7 +10,7 @@ import unittest
 import json
 from .context import parse_ddl
 
-class TestParseSQL(unittest.TestCase):
+class TestParseDDL(unittest.TestCase):
 
     def test_remove_empty_lists(self):
         lista = [1, 2, 3]
@@ -241,16 +241,38 @@ class TestParseSQL(unittest.TestCase):
                        "BK_GOTCH_234_CheckIDFix_ON_PART")
         obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
+        
+        the_string = ("CREATE CLUSTERED INDEX [IX_CurbsideSignificance] "\
+                      "ON [dbo].[CurbsideSignificance] (  [DataID] ASC,"\
+                      "[CurbsideSignificanceCodeID] ASC )")
 
-        the_string = ("sp_rename \
-		@objname = N'dbo.CentralLogging.AppicationName', \
-		@newname = 'ApplicationName'")
-        assert_info = ("SP_RENAME",
-                       None,
+        assert_info = ("CREATE",
+                       "INDEX",
                        "dbo",
-                       "ApplicationName")
+                       "IX_CurbsideSignificance")
         obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)
+        
+        the_string = ("CREATE NONCLUSTERED INDEX "\
+                      "[IX_Aud_Allsbury_SubCategoryID_new] ON "\
+                      "[dbo].[Auds_new]  (  [Allsbury_Audit_ID] ASC )")
+
+        assert_info = ("CREATE",
+                       "INDEX",
+                       "dbo",
+                       "IX_Aud_Allsbury_SubCategoryID_new")
+        obj_info = parse_ddl.ddl_object_info(the_string)
+        self.assertEqual(assert_info, obj_info)        
+        
+        the_string = ("CREATE UNIQUE INDEX userIDX ON"\
+                      "RVW.USERSETTINGS(USER_ID)")
+
+        assert_info = ("CREATE",
+                       "INDEX",
+                       "dbo",
+                       "userIDX")
+        obj_info = parse_ddl.ddl_object_info(the_string)
+        self.assertEqual(assert_info, obj_info)        
         
         the_string = ("sp_rename \
                       N'dbo.Audits.IX_Audits_AuditSubCategoryID', \
@@ -260,7 +282,16 @@ class TestParseSQL(unittest.TestCase):
                        "dbo",
                        "IX_Audits_AuditSubCategoryID_old")
         obj_info = parse_ddl.ddl_object_info(the_string)
+        self.assertEqual(assert_info, obj_info)
+        
+        the_string = ("sp_Rename UploadFileConfigs, UploadFileConfigs_Backup")
+        assert_info = ("SP_RENAME",
+                       None,
+                       "dbo",
+                       "UploadFileConfigs_Backup")
+        obj_info = parse_ddl.ddl_object_info(the_string)
         self.assertEqual(assert_info, obj_info)        
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,34 +1,38 @@
 from dateutil import parser
+import datetime
 import urllib
 import re
 import git
 import sqlalchemy
 import yaml
+import os
 import pandas as pd
+import pytz
 import db_ops
 import parse_ddl
 
 
 # Load the config yaml file
-with open('config.yaml') as fp:
-    MY_CONFIGURATION = yaml.load(fp)
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.yaml')
+with open(CONFIG_FILE) as yaml_file:
+    CFG = yaml.safe_load(yaml_file)
 
 # pyodbc connection string
 DB_CONNECT_STRING = "DRIVER={%s};\
                      SERVER=%s;\
                      DATABASE=%s;\
                      UID=%s;\
-                     PWD=%s" % (MY_CONFIGURATION['SQL_DRIVER'],
-                                MY_CONFIGURATION['SQL_SERVER'],
-                                MY_CONFIGURATION['SQL_DATABASE'],
-                                MY_CONFIGURATION['SQL_LOGIN'],
-                                MY_CONFIGURATION['SQL_PASSWORD'])
+                     PWD=%s" % (CFG['SQL_DRIVER'],
+                                CFG['SQL_SERVER'],
+                                CFG['SQL_DATABASE'],
+                                CFG['SQL_LOGIN'],
+                                CFG['SQL_PASSWORD'])
 PARAMS = urllib.parse.quote_plus(DB_CONNECT_STRING)
 ENGINE = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % PARAMS)
 
 # Grab the current git git_tag from repo
-GIT_REPO_MAIN_DIR = MY_CONFIGURATION['GIT_REPO_MAIN_DIR']
-GIT_REPO = MY_CONFIGURATION['GIT_REPO_NAME']
+GIT_REPO_MAIN_DIR = CFG['GIT_REPO_MAIN_DIR']
+GIT_REPO = CFG['GIT_REPO_NAME']
 REPO = git.Repo(GIT_REPO_MAIN_DIR)
 G = git.Git(GIT_REPO_MAIN_DIR)
 
@@ -50,6 +54,8 @@ def populate_git_tag_dates():
             datepart = datepart.replace("format:", "")
             # Parse date time with UTC offset using dateutil.parser
             datepart = parser.parse(datepart)
+            utc = pytz.UTC
+            datepart = datepart.replace(tzinfo=utc) - datepart.utcoffset()
             tags = re.search(r'\(.+\)', logentry)
             if tags is None:
                 tags = None
@@ -65,9 +71,13 @@ def populate_git_tag_dates():
                     tagslist.append({'git_repo': GIT_REPO,
                                      'git_tag': tag,
                                      'git_tag_date': datepart})
-                    print(datepart)
-                    print(tag)
+    if len(tagslist) == 0:
+        # If no tags, append master as the default
+        tagslist.append({'git_repo': GIT_REPO,
+                         'git_tag': 'master',
+                         'git_tag_date': datetime.datetime.now()})
     tagsdf = pd.DataFrame(tagslist)
+    tagsdf["git_tag_date"] = tagsdf['git_tag_date'].astype('datetime64')
     tagsdf.to_sql('git_tag_dates',
                   ENGINE,
                   if_exists='append',
@@ -165,16 +175,11 @@ def read_tag_to_dataframe(git_repo, git_tag):
     # Delete the second duplicate file_content_hash values from each dataframe.
     dfx = dfx.drop_duplicates(subset='file_content_hash', keep='first')
     
-    # Remove directory paths not like Rave_Viper_Lucy_Merged_DB_Scripts
-    #string_contains = 'Rave_Viper_Lucy_Merged_DB_Scripts'
-    #dfx = dfx[dfx['dir_path'].str.contains(string_contains)]
-    
+
     # Remove certain directory paths the ~ is the opposite result set
     dfx = dfx[~dfx['dir_path'].str.contains('tSQLt_UnitTests')]
     dfx = dfx[~dfx['dir_path'].str.contains('Samples')]
     dfx = dfx[~dfx['dir_path'].str.contains('SolarWinds')]
-    #dfx = dfx[~dfx['dir_path'].str.contains('Registry1')]
-    #dfx = dfx[~dfx['dir_path'].str.contains('TSDV DB Install Scripts')]
     return dfx
 
 
@@ -308,12 +313,15 @@ def git_compare_all_tags():
 
 
 if __name__ == "__main__":
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_tag_dates")
+    # Pull all tags and save to database
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_tag_dates", GIT_REPO)
     populate_git_tag_dates()
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl")
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_parse_ddl_objects")
+
+    # Loop through all tags in order and pull object name, schema, types
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_parse_ddl", GIT_REPO)
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_parse_ddl_objects", GIT_REPO)
     git_parse_ddl_all_tags()
+
     # Loop through all tags in order and compare before and after tag
-    db_ops.truncate_sql_table(DB_CONNECT_STRING, "git_compare_two_tags")
+    db_ops.delete_repo_from_table(DB_CONNECT_STRING, "git_compare_two_tags", GIT_REPO)
     git_compare_all_tags()
-    
