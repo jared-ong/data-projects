@@ -9,7 +9,8 @@ IF EXISTS (SELECT * from sys.databases WHERE is_published = 1 and name = db_name
 	SET @isTransactionalReplicationPublisher = 1
 
 DECLARE @varSQL nvarchar(2000)
-SET @varSQL = 'IF sys.fn_hadr_is_primary_replica (db_name()) = 1
+SET @varSQL = 'IF (sys.fn_hadr_is_primary_replica (db_name()) = 1 
+AND EXISTS (select * from sys.dm_hadr_database_replica_cluster_states where database_name = db_name()))
 BEGIN
 SET @isAGPrimaryOUT = 1
 END
@@ -26,7 +27,8 @@ BEGIN
 END
 
 DECLARE @varSQL2 nvarchar(2000)
-SET @varSQL2 = 'IF sys.fn_hadr_backup_is_preferred_replica (db_name()) = 1
+SET @varSQL2 = 'IF (sys.fn_hadr_backup_is_preferred_replica (db_name()) = 1
+AND EXISTS (select * from sys.dm_hadr_database_replica_cluster_states where database_name = db_name()))
 BEGIN
 SET @isAGReplicaOUT = 1
 END
