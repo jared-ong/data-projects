@@ -34,6 +34,7 @@ and o.name not like '%_pre201810'
 and o.name not like '%_post201810'
 and o.name not like '%_bak'
 and o.name not like '%_old'
+and o.name not like 'csp_BOLoadReportParams'
 and schema_name(o.schema_id) NOT IN ('cdc','sys')
 
 "
