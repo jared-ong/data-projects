@@ -1,0 +1,1 @@
+exec generate_load @maxUpdates = 50
