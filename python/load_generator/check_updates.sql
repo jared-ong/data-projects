@@ -1,0 +1,1 @@
+select count(*) from datapoints where updated > getdate() - 0.00347
