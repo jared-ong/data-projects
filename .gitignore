@@ -15,3 +15,6 @@ python/push_data_to_google_sheets/client_secret.json
 python/push_data_to_google_sheets/jareddev-206516-5f3eeac597bd.json
 python/falcon_dba_info/whois_data/urls_not_in_falcon.csv
 python/parse_ddl/config.yaml
+python/get_recent_10_logins/data/all_data.csv
+python/get_recent_10_logins/data/individual_files/abbottdev.mdsol.com.csv
+python/get_recent_10_logins/data/individual_files/abbottvascular.mdsol.com.csv
