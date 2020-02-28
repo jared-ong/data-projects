@@ -8,8 +8,8 @@ $TruncateDestTableBeforeReInsert = $true
 
 # Query the source Rave DB
 $sqlQuery = @"
-select top 10000 * from
-Datapoints
+select top 10000 DataPointID as TestID, RecordID, VariableID, Data, DataDictEntryID
+from Datapoints
 order by 1
 "@
 
