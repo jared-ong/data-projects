@@ -4,7 +4,21 @@ SQL_DATABASE: "parse_ddl"
 SQL_LOGIN: "python_user"
 SQL_PASSWORD: "python_user"
 # Directory where to recursively look for .sql files
-SQL_DIR: "C:\\Users\\jong\\Documents\\GitHub\\IT-DBA-Scripting"
+SQL_DIR: "C:\\Users\\jong\\Documents\\GitHub\\customer_care_change_management"
 # Grab the current git git_tag from repo
-GIT_REPO_MAIN_DIR: "C:\\Users\\jong\\Documents\\GitHub\\IT-DBA-Scripting"
-GIT_REPO_NAME: "IT-DBA-Scripting"
+GIT_REPO_MAIN_DIR: "C:\\Users\\jong\\Documents\\GitHub\\customer_care_change_management"
+GIT_REPO_NAME: "customer_care_change_management"
+
+#batch-upload
+#BusinessObjects
+#custom_reports
+#customer_care_change_management
+#epro-app
+#IT-DBA-Scripting
+#JReview
+#Rave
+#RaveCustomFunctions
+#RaveMaintenanceSQLScripts
+#rave-safety-gateway
+#ScriptUtility
+#StandardReports

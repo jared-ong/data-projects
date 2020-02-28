@@ -18,3 +18,10 @@ python/parse_ddl/config.yaml
 python/get_recent_10_logins/data/all_data.csv
 python/get_recent_10_logins/data/individual_files/abbottdev.mdsol.com.csv
 python/get_recent_10_logins/data/individual_files/abbottvascular.mdsol.com.csv
+python/checking_analysis/checking_data_cleaned.csv
+python/checking_analysis/checking_data_raw.csv
+python/checking_analysis/vendor_translations_categories_raw.csv
+python/sql_job_history_visualization/job_history_example.csv
+python/sql_job_history_visualization/job_history_example2.csv
+python/sql_job_history_visualization/job_history_example4.csv
+python/sql_job_history_visualization/job_history_example3.csv
