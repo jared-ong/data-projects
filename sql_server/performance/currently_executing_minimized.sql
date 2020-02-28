@@ -14,9 +14,8 @@ SUSPENDED–meaning that the query is waiting for a third party resource to become
 select er.session_id
        ,s.kpid
        ,'dbcc inputbuffer ('+cast(er.session_id as varchar(15)) + ');' as dbccinputbuffer
-       ,es.login_name
+       ,s.loginame as login_name
        ,s.status
-	   ,s.cmd
        ,er.wait_type
        ,s.lastwaittype
        ,s.waittime/1000 as wait_time_seconds

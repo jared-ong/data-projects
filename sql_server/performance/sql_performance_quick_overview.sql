@@ -23,6 +23,16 @@ INNER JOIN sys.sysprocesses s on st.session_id = s.spid
 ORDER BY transaction_begin_time
   
   
+--Look at what has been going on on the server recently by looking at active_query_monitor
+use dbamon
+go
+select 'Recent query activity' as description, Textdata, startTime, Endtime, ((Duration/1000/1000)- (case when highest_wait_time is null then 0 else highest_wait_time/1000 end)) as run_dur_secs , HostName, ApplicationName, LoginName, ObjectName, t.CPU, t.Reads, t.Writes
+from dbo.trace t
+join dbo.active_query_monitor m on t.spid = m.session_id
+and t.starttime = m.Start_Time
+--and DB_NAME(database_id) like '%hdcvcl02051%'
+order by start_time desc
+  
 --Query to locate currently executing SQL jobs and when they started
 SELECT
     'Currently executing SQL Jobs' as description,
@@ -97,6 +107,7 @@ FROM sys.master_files f
 INNER JOIN sys.dm_io_virtual_file_stats(NULL, NULL) v
 ON f.database_id=v.database_id and f.file_id=v.file_id
 GROUP BY left(f.physical_name, 1),DATEADD(MS,sample_ms * -1, GETDATE());
+  
   
   
 --Check blocking queries
